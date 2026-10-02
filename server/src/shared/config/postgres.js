@@ -2,7 +2,7 @@ import pg from "pg"
 import config from "./index.js"
 import logger from "./logger.js"
 
-const { Pool } = pg;
+const { Pool } = pg; //A PostgreSQL connection pool is a collection of reusable database connections.
 
 class PostgresConnection {
     constructor() {

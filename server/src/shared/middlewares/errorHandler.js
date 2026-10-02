@@ -3,7 +3,7 @@ import ResponseFormatter from "../utils/responseFormatter.js"
 
 // Agent
 const errorHandler = (err, req, res, next) => {
-    let statusCode = req.statusCode || 500;
+    let statusCode = err.statusCode || 500;
     let message = err.message || "Internal server error";
     let errors = err.errors || null
 

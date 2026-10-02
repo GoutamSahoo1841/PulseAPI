@@ -35,7 +35,7 @@ const config = {
     },
 
     jwt: {
-        secret: process.env.JWT_SECRET || "SABKA_VALINTINE_WEEK_KAISE_JA_RAHA_HAI",
+        secret: process.env.JWT_SECRET || "SecreteKey011",
         expiresIn: process.env.JWT_EXPIRES_IN || '24h',
     },
 
@@ -48,7 +48,7 @@ const config = {
     cookie: {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        expiresIn: 24 * 60 * 60 * 1000
+        expiresIn: 24 * 60 * 60 * 1000 
     }
 }
 

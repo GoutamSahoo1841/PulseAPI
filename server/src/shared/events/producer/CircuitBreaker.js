@@ -12,7 +12,9 @@ export const CircuitState = Object.freeze({
 })
 
 /**
- * A simple implementation of the Circuit Breaker pattern in JavaScript. This class allows you to wrap calls to external services and automatically handle failures by opening the circuit after a certain number of consecutive failures, and then allowing a limited number of test requests after a cooldown period to determine if the service has recovered.
+ * A simple implementation of the Circuit Breaker pattern in JavaScript. 
+ * This class allows you to wrap calls to external services and automatically handle failures by opening the circuit after a certain number of consecutive failures, 
+ * and then allowing a limited number of test requests after a cooldown period to determine if the service has recovered.
  * 
  * Usage:
  * const circuitBreaker = new CircuitBreaker({ failureThreshold: 5, cooldownMs: 30000 }
@@ -20,7 +22,8 @@ export const CircuitState = Object.freeze({
  * circuitBreaker.onSuccess() // call this when a request succeeds
  * circuitBreaker.onFailure() // call this when a request fails
  * 
- * The circuit breaker will automatically transition between states (CLOSED, OPEN, HALF_OPEN) based on the success and failure of requests, and will log state changes and metrics for monitoring purposes.
+ * The circuit breaker will automatically transition between states (CLOSED, OPEN, HALF_OPEN) based on the success and failure of requests, 
+ * and will log state changes and metrics for monitoring purposes.
  */
 export class CircuitBreaker {
     /**
@@ -74,7 +77,8 @@ export class CircuitBreaker {
     }
 
     /**
-     * Opens the circuit, preventing further requests from being allowed until the cooldown period has elapsed. This method is called when the failure threshold is reached or when a test request in the HALF_OPEN state fails.
+     * Opens the circuit, preventing further requests from being allowed until the cooldown period has elapsed. 
+     * This method is called when the failure threshold is reached or when a test request in the HALF_OPEN state fails.
      * @private
      */
     _openCircuit() {
@@ -87,7 +91,8 @@ export class CircuitBreaker {
     }
 
     /**
-     * Resets the circuit breaker to the CLOSED state, allowing requests to be processed normally. This method is called when a test request in the HALF_OPEN state succeeds or can be called manually for debugging purposes.
+     * Resets the circuit breaker to the CLOSED state, allowing requests to be processed normally. 
+     * This method is called when a test request in the HALF_OPEN state succeeds or can be called manually for debugging purposes.
      * @private
      */
     _reset() {
@@ -147,7 +152,8 @@ export class CircuitBreaker {
 
     /**
      * Records a successful request. 
-     * If the circuit breaker is in the HALF_OPEN state, it counts the success and transitions to CLOSED if the required number of successful attempts is reached. If the circuit breaker is in the CLOSED state and there were previous failures, it resets the failure count.
+     * If the circuit breaker is in the HALF_OPEN state, it counts the success and transitions to CLOSED if the required number of successful attempts is reached. 
+     * If the circuit breaker is in the CLOSED state and there were previous failures, it resets the failure count.
      * @returns {void}
      */
     onSuccess() {
@@ -174,7 +180,8 @@ export class CircuitBreaker {
         }
     };
     /**
-     * Records a failed request. If the circuit breaker is in the HALF_OPEN state, it immediately transitions back to OPEN. If the circuit breaker is in the CLOSED state, it increments the failure count and opens the circuit if the failure threshold is reached.
+     * Records a failed request. If the circuit breaker is in the HALF_OPEN state, it immediately transitions back to OPEN. 
+     * If the circuit breaker is in the CLOSED state, it increments the failure count and opens the circuit if the failure threshold is reached.
      * @returns 
      */
     onFailure() {
@@ -202,7 +209,8 @@ export class CircuitBreaker {
 
     /**
      * Returns a snapshot of the current state of the circuit breaker.
-     * @returns {{state: string, failures: number, lastFailureTime: number, halfOpenAttempts: number, halfOpenSuccesses: number, cooldownMs: number, failureThreshold: number}} The snapshot of the circuit breaker state.
+     * @returns {{state: string, failures: number, lastFailureTime: number, halfOpenAttempts: number, halfOpenSuccesses: number, cooldownMs: number, failureThreshold: number}} 
+     * The snapshot of the circuit breaker state.
      * @private
      */
     snapshot() {

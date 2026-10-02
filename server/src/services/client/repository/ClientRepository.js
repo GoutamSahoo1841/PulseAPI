@@ -103,6 +103,37 @@ class MongoClientRepository extends BaseClientRepository {
             throw error;
         }
     }
+
+    /**
+     * Update a client by ID
+     * @param {string} clientId
+     * @param {Object} updateData
+     * @returns {Promise<Object>}
+     */
+    async update(clientId, updateData) {
+        try {
+            const client = await this.model.findByIdAndUpdate(clientId, updateData, { new: true });
+            return client;
+        } catch (error) {
+            logger.error('Error updating client in db:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Delete a client by ID
+     * @param {string} clientId
+     * @returns {Promise<Object>}
+     */
+    async delete(clientId) {
+        try {
+            const client = await this.model.findByIdAndDelete(clientId);
+            return client;
+        } catch (error) {
+            logger.error('Error deleting client from db:', error);
+            throw error;
+        }
+    }
 }
 
 

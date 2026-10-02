@@ -8,6 +8,7 @@ import postgres from './shared/config/postgres.js';
 import rabbitmq from './shared/config/rabbitmq.js';
 import errorHandler from './shared/middlewares/errorHandler.js';
 import ResponseFormatter from './shared/utils/responseFormatter.js';
+import { getISTTimestamp } from './shared/utils/dateUtils.js';
 import cookieParser from "cookie-parser"
 
 // Routers
@@ -53,7 +54,7 @@ app.get('/health', (req, res) => {
         ResponseFormatter.success(
             {
                 status: 'healthy',
-                timestamp: new Date().toISOString(),
+                timestamp: getISTTimestamp(),
                 uptime: process.uptime(),
             },
             'Service is healthy'

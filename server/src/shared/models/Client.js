@@ -58,7 +58,7 @@ const clientSchema = new mongoose.Schema(
             },
             timezone: {
                 type: String,
-                default: 'UTC',
+                default: 'Asia/Kolkata',
             },
         },
     },

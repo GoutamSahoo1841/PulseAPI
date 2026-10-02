@@ -98,4 +98,56 @@ export class ClientController {
             next(error)
         }
     }
+
+    /**
+     * Get list of clients
+     */
+    async getClients(req, res, next) {
+        try {
+            const clients = await this.clientService.getClients(req.query, req.user);
+            return res.status(200).json(ResponseFormatter.success(clients, "Clients fetched successfully", 200));
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Update client status (active/inactive)
+     */
+    async updateClientStatus(req, res, next) {
+        try {
+            const { clientId } = req.params;
+            const { isActive } = req.body;
+            const client = await this.clientService.updateClientStatus(clientId, isActive, req.user);
+            return res.status(200).json(ResponseFormatter.success(client, "Client status updated successfully", 200));
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Delete client
+     */
+    async deleteClient(req, res, next) {
+        try {
+            const { clientId } = req.params;
+            const result = await this.clientService.deleteClient(clientId, req.user);
+            return res.status(200).json(ResponseFormatter.success(result, "Client deleted successfully", 200));
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Get users for client
+     */
+    async getClientUsers(req, res, next) {
+        try {
+            const { clientId } = req.params;
+            const users = await this.clientService.getClientUsers(clientId, req.user);
+            return res.status(200).json(ResponseFormatter.success(users, "Client users fetched successfully", 200));
+        } catch (error) {
+            next(error);
+        }
+    }
 }

@@ -91,7 +91,24 @@ export class ClientService {
                 createdBy: adminUser.userId
             });
 
-            return client;
+            // Automatically create a default API Key for the organisation
+            const keyId = uudiv4();
+            const keyValue = this.generateApiKey();
+
+            const apiKey = await this.apiKeyRepository.create({
+                keyId,
+                keyValue,
+                clientId: client._id,
+                name: 'Default Production Ingestion Key',
+                description: 'Auto-generated API key for hit telemetry monitoring',
+                environment: 'production',
+                createdBy: adminUser.userId
+            });
+
+            return {
+                client,
+                apiKey
+            };
         } catch (error) {
             logger.error('Error creating client:', error);
             throw error;
@@ -284,6 +301,94 @@ export class ClientService {
             };
         } catch (error) {
             logger.error('Error finding client by API key:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get all clients (or client for user)
+     */
+    async getClients(query = {}, user) {
+        try {
+            const filters = {};
+
+            if (user.role !== APPLICATION_ROLES.SUPER_ADMIN) {
+                if (!user.clientId) return [];
+                filters._id = user.clientId;
+            } else {
+                if (query.isActive !== undefined && query.isActive !== '') {
+                    filters.isActive = query.isActive === 'true' || query.isActive === true;
+                }
+                if (query.search) {
+                    filters.name = { $regex: query.search, $options: 'i' };
+                }
+            }
+
+            const clients = await this.clientRepository.find(filters);
+            return clients;
+        } catch (error) {
+            logger.error('Error getting clients:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Update client active status
+     */
+    async updateClientStatus(clientId, isActive, user) {
+        try {
+            if (user.role !== APPLICATION_ROLES.SUPER_ADMIN) {
+                throw new AppError('Only Super Admin can update client status', 403);
+            }
+
+            const updatedClient = await this.clientRepository.update(clientId, { isActive });
+            if (!updatedClient) {
+                throw new AppError('Client not found', 404);
+            }
+
+            logger.info('Client status updated', { clientId, isActive });
+            return updatedClient;
+        } catch (error) {
+            logger.error('Error updating client status:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Delete client
+     */
+    async deleteClient(clientId, user) {
+        try {
+            if (user.role !== APPLICATION_ROLES.SUPER_ADMIN) {
+                throw new AppError('Only Super Admin can delete a client', 403);
+            }
+
+            const deletedClient = await this.clientRepository.delete(clientId);
+            if (!deletedClient) {
+                throw new AppError('Client not found', 404);
+            }
+
+            logger.info('Client deleted', { clientId });
+            return deletedClient;
+        } catch (error) {
+            logger.error('Error deleting client:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get users for a client
+     */
+    async getClientUsers(clientId, user) {
+        try {
+            if (!this.canUserAccessClient(user, clientId)) {
+                throw new AppError('Access denied', 403);
+            }
+
+            const users = await this.userRepository.findByClientId(clientId);
+            return users;
+        } catch (error) {
+            logger.error('Error getting client users:', error);
             throw error;
         }
     }

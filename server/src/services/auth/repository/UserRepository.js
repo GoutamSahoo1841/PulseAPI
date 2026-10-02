@@ -98,6 +98,21 @@ class MongoUserRepository extends BaseRepository {
             throw error;
         }
     }
+
+    /**
+     * Finds users by clientId.
+     * @param {string} clientId
+     * @returns {Promise<Array>}
+     */
+    async findByClientId(clientId) {
+        try {
+            const users = await this.model.find({ clientId }).select("-password");
+            return users;
+        } catch (error) {
+            logger.error("Error finding users by clientId", error);
+            throw error;
+        }
+    }
 }
 
 export default new MongoUserRepository()

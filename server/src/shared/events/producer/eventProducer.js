@@ -1,8 +1,11 @@
 import { EVENT_TYPES } from "../eventContracts.js";
-import { isRetryable } from "./RetryStrategy.js"
+import { isRetryable } from "./RetryStrategy.js";
+import { getISTTimestamp } from "../../utils/dateUtils.js";
 
 /**
- * EventProducer is responsible for publishing events to a RabbitMQ queue with reliability features such as retry logic and circuit breaking. It manages a confirm channel to ensure messages are acknowledged by the broker, and it implements a retry strategy with exponential backoff and jitter to handle transient failures. The producer also tracks metrics for published messages, failed attempts, and exhausted retries, and it provides a shutdown method to gracefully close the channel when the application is terminating.
+ * EventProducer is responsible for publishing events to a RabbitMQ queue with reliability features such as retry logic and circuit breaking. 
+ * It manages a confirm channel to ensure messages are acknowledged by the broker, and it implements a retry strategy with exponential backoff and jitter to handle transient failures. 
+ * The producer also tracks metrics for published messages, failed attempts, and exhausted retries, and it provides a shutdown method to gracefully close the channel when the application is terminating.
  * @class EventProducer
  * @constructor
  * @param {Object} dependencies - The dependencies required by the EventProducer.
@@ -60,7 +63,8 @@ export class EventProducer {
             throw error;
         }
 
-        // Check circuit breaker before attempting to publish the event. If the circuit is open, we reject the publish attempt immediately to avoid overwhelming the message broker and to allow it time to recover. This also helps to fail fast and provide quicker feedback to the caller about the unavailability of the service.
+        // Check circuit breaker before attempting to publish the event. If the circuit is open, we reject the publish attempt immediately to avoid overwhelming the message broker and to allow it time to recover. 
+        // This also helps to fail fast and provide quicker feedback to the caller about the unavailability of the service.
         if (!this._circuitBreaker.allowRequest()) {
             this._logger.info('[EventProducer] circuit breaker rejected publish', {
                 eventId: eventData.eventId,
@@ -129,7 +133,7 @@ export class EventProducer {
         const message = {
             type: EVENT_TYPES.API_HIT,
             data: eventData,
-            publishedAt: new Date().toISOString(),
+            publishedAt: getISTTimestamp(),
             attempt: attempt + 1
         };
 
@@ -173,7 +177,9 @@ export class EventProducer {
     }
 
     /**
-     * Shuts down the EventProducer by closing the RabbitMQ channel and preventing new publish attempts. This method should be called during application shutdown to ensure that resources are cleaned up properly. Once shutdown is initiated, any new publish attempts will be rejected with an error indicating that the producer is shutting down.
+     * Shuts down the EventProducer by closing the RabbitMQ channel and preventing new publish attempts. 
+     * This method should be called during application shutdown to ensure that resources are cleaned up properly. 
+     * Once shutdown is initiated, any new publish attempts will be rejected with an error indicating that the producer is shutting down.
      */
     async shutdown() {
         this._shuttingDown = true;
@@ -184,7 +190,8 @@ export class EventProducer {
 
 
     /**
-     *  Gets the current metrics and circuit breaker state for monitoring purposes. This method can be used to expose an endpoint for health checks or to integrate with monitoring tools to track the performance and reliability of the event producer.
+     *  Gets the current metrics and circuit breaker state for monitoring purposes. 
+     * This method can be used to expose an endpoint for health checks or to integrate with monitoring tools to track the performance and reliability of the event producer.
      * @returns {Object} - An object containing the current metrics and circuit breaker state.
      */
     getStats() {

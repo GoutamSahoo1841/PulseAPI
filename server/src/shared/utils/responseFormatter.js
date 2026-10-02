@@ -1,3 +1,5 @@
+import { getISTTimestamp } from './dateUtils.js';
+
 /**
  * ResponseFormatter - Utility class for formatting API responses in a consistent structure.
  * This class can be extended in the future to include additional response types or features as needed.
@@ -17,7 +19,7 @@ class ResponseFormatter {
             message,
             data,
             statusCode,
-            timestamp: new Date().toISOString()
+            timestamp: getISTTimestamp()
         }
     }
 
@@ -34,7 +36,7 @@ class ResponseFormatter {
             message,
             error,
             statusCode,
-            timestamp: new Date().toISOString()
+            timestamp: getISTTimestamp()
         }
     }
 
@@ -49,7 +51,7 @@ class ResponseFormatter {
             message: 'Validation failed',
             error,
             statusCode: 400,
-            timestamp: new Date().toISOString()
+            timestamp: getISTTimestamp()
         }
     }
 
@@ -71,7 +73,7 @@ class ResponseFormatter {
                 total,
                 totalPages: Math.ceil(total / limit)
             },
-            timestamp: new Date().toISOString()
+            timestamp: getISTTimestamp()
         }
     }
 }

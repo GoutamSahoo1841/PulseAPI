@@ -14,7 +14,7 @@ export function reportError(error, context = {}) {
         stack: error?.stack ?? null,
         context,
         url: window.location.href,
-        timestamp: new Date().toISOString(),
+        timestamp: new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString().replace('Z', '+05:30'),
     };
 
     navigator.sendBeacon(endpoint, JSON.stringify(payload));
