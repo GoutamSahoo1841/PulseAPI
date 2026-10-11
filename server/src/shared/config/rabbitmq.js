@@ -29,7 +29,7 @@ class RabbitMQConnection {
         try {
             this.isConnecting = true;
 
-            logger.info("Connecting to RabbitMQ", config.rabbitmq.url)
+            logger.info("Connecting to RabbitMQ")
             this.connection = await amqp.connect(config.rabbitmq.url);
             this.channel = await this.connection.createChannel();
 
