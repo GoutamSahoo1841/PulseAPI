@@ -50,7 +50,9 @@ class RabbitMQConnection {
                 }
             })
 
-            logger.info("RabbitMQ connected, queue:", config.rabbitmq.queue)
+            logger.info('RabbitMQ connected', {
+                queue: config.rabbitmq.queue
+            });
 
             this.connection.on("close", () => {
                 logger.warn('RabbitMQ connection closed');
