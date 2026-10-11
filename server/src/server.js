@@ -26,8 +26,13 @@ const app = express();
  * Middlewares
  */
 app.use(helmet());
+const allowedOrigins = (process.env.CLIENT_URL || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
 app.use(cors({
-    origin: true,
+    origin: allowedOrigins,
     credentials: true
 }));
 app.use(cookieParser())
@@ -134,7 +139,7 @@ async function startServer() {
     try {
         await initializeConnection();
 
-        const server = app.listen(config.port, () => {
+        const server = app.listen(config.port, "0.0.0.0", () => {
             logger.info(`Server started on port ${config.port}`);
             logger.info(`Environment: ${config.node_env}`);
             logger.info(`API available at: http://localhost:${config.port}`);
