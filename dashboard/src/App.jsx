@@ -24,8 +24,14 @@ function MainContent() {
 
     if (loading) {
         return (
-            <div style={{ height: '100vh', display: 'grid', placeItems: 'center', background: '#0f172a', color: '#fff' }}>
-                Loading API Monitor...
+            <div style={{ height: '100vh', display: 'grid', placeItems: 'center', background: '#f5f7ff', color: '#172033', fontFamily: 'Inter, sans-serif' }}>
+                <div style={{ textAlign: 'center' }}>
+                    <div className="logo-mark" style={{ margin: '0 auto 12px', width: '36px', height: '36px' }}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
+                    </div>
+                    <strong style={{ fontSize: '15px' }}>PulseAPI</strong>
+                    <p style={{ color: '#788398', fontSize: '11px', margin: '4px 0 0' }}>Loading observability workspace...</p>
+                </div>
             </div>
         );
     }

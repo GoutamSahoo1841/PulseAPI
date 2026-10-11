@@ -5,9 +5,22 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useNavigate } from 'react-router-dom';
 import {
-    Building2, Plus, Search, CheckCircle2, XCircle, Trash2,
-    BarChart3, Globe, Mail, Loader2, Filter, X, Copy, Check, Lock
+    Plus, Search, SlidersHorizontal, ChevronDown, ChevronLeft, ChevronRight,
+    X, MoreHorizontal, Copy, Check, BarChart3, Trash2, Power, RefreshCw
 } from 'lucide-react';
+
+function Avatar({ initials, tone = 'blue' }) {
+    return <span className={`avatar avatar-${tone}`}>{initials}</span>;
+}
+
+function StatusBadge({ active }) {
+    return (
+        <span className={`status ${active ? 'status-active' : 'status-inactive'}`}>
+            <span />
+            {active ? 'Active' : 'Inactive'}
+        </span>
+    );
+}
 
 export function OrganisationsPage() {
     const { setSelectedClient, isSuperAdmin } = useAuth();
@@ -17,15 +30,16 @@ export function OrganisationsPage() {
 
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'active', 'inactive'
-    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [showModal, setShowModal] = useState(false);
     const [createdResult, setCreatedResult] = useState(null); // { client, apiKey }
     const [keyCopied, setKeyCopied] = useState(false);
+    const [activeRowMenu, setActiveRowMenu] = useState(null);
 
-    // Form state
+    // Form fields
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
-    const [description, setDescription] = useState('');
     const [website, setWebsite] = useState('');
+    const [description, setDescription] = useState('');
 
     const { data: clientsData, isLoading, refetch } = useQuery({
         queryKey: ['clients', search, statusFilter],
@@ -42,14 +56,13 @@ export function OrganisationsPage() {
         onSuccess: (res) => {
             if (res.success && res.data) {
                 showToast('Organisation onboarded successfully!', 'success');
-                setShowCreateModal(false);
+                setShowModal(false);
                 setName('');
                 setEmail('');
-                setDescription('');
                 setWebsite('');
+                setDescription('');
                 setCreatedResult(res.data);
                 queryClient.invalidateQueries({ queryKey: ['clients'] });
-                queryClient.refetchQueries({ queryKey: ['clients'] });
             } else {
                 showToast(res.message || 'Failed to onboard organisation', 'error');
             }
@@ -63,9 +76,8 @@ export function OrganisationsPage() {
         mutationFn: ({ clientId, isActive }) => clientApi.updateClientStatus(clientId, isActive),
         onSuccess: (res, variables) => {
             if (res.success) {
-                showToast(`Organisation ${variables.isActive ? 'activated' : 'deactivated'} successfully!`, 'success');
+                showToast(`Organisation ${variables.isActive ? 'activated' : 'deactivated'}!`, 'success');
                 queryClient.invalidateQueries({ queryKey: ['clients'] });
-                queryClient.refetchQueries({ queryKey: ['clients'] });
             }
         },
         onError: (err) => {
@@ -79,7 +91,6 @@ export function OrganisationsPage() {
             if (res.success) {
                 showToast('Organisation deleted successfully', 'success');
                 queryClient.invalidateQueries({ queryKey: ['clients'] });
-                queryClient.refetchQueries({ queryKey: ['clients'] });
             }
         },
         onError: (err) => {
@@ -89,7 +100,7 @@ export function OrganisationsPage() {
 
     const handleCreate = (e) => {
         e.preventDefault();
-        onboardMutation.mutate({ name, email, description, website });
+        onboardMutation.mutate({ name, email, website, description });
     };
 
     const handleViewAnalytics = (client) => {
@@ -102,7 +113,7 @@ export function OrganisationsPage() {
     };
 
     const handleDelete = (client) => {
-        if (window.confirm(`Are you sure you want to delete "${client.name}"? This action cannot be undone.`)) {
+        if (window.confirm(`Are you sure you want to delete "${client.name}"?`)) {
             deleteMutation.mutate(client._id);
         }
     };
@@ -116,448 +127,224 @@ export function OrganisationsPage() {
         }
     };
 
-    return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-                <div>
-                    <h1 style={{ fontSize: '1.75rem', fontWeight: 700, margin: 0, background: 'linear-gradient(to right, #a855f7, #6366f1)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                        Organisations Directory
-                    </h1>
-                    <p style={{ color: 'var(--theme-muted-text, #94a3b8)', margin: '0.25rem 0 0 0', fontSize: '0.875rem' }}>
-                        Manage active and inactive client organisations registered in your API Monitoring System
-                    </p>
-                </div>
+    const getInitials = (n) => {
+        if (!n) return 'CO';
+        const parts = n.trim().split(' ');
+        if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+        return n.slice(0, 2).toUpperCase();
+    };
 
+    const getAvatarTone = (idx) => {
+        const tones = ['blue', 'violet', 'amber', 'purple', 'green'];
+        return tones[idx % tones.length];
+    };
+
+    return (
+        <div className="page-content">
+            <div className="page-header">
+                <div>
+                    <div className="eyebrow">PLATFORM MANAGEMENT</div>
+                    <h2>Organisations</h2>
+                    <p>Manage organisations connected to the PulseAPI platform.</p>
+                </div>
                 {isSuperAdmin && (
-                    <button
-                        onClick={() => setShowCreateModal(true)}
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            padding: '0.625rem 1.25rem',
-                            borderRadius: '0.5rem',
-                            border: 'none',
-                            background: 'linear-gradient(to right, #a855f7, #6366f1)',
-                            color: '#fff',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            boxShadow: '0 4px 14px rgba(168, 85, 247, 0.4)'
-                        }}
-                    >
-                        <Plus size={18} />
-                        Onboard Organisation
+                    <button className="primary-button" onClick={() => setShowModal(true)}>
+                        <Plus size={16} /> Onboard organisation
                     </button>
                 )}
             </div>
 
-            {/* Filter and Search Bar */}
-            <div style={{
-                display: 'flex',
-                gap: '1rem',
-                flexWrap: 'wrap',
-                background: 'var(--theme-glass-bg, rgba(15, 23, 42, 0.6))',
-                padding: '1rem',
-                borderRadius: '0.75rem',
-                border: '1px solid var(--theme-glass-border, rgba(255, 255, 255, 0.1))'
-            }}>
-                <div style={{ flex: 1, minWidth: '240px', position: 'relative' }}>
-                    <Search size={18} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+            {/* Search & Filters */}
+            <div className="search-filters">
+                <div className="search-input">
+                    <Search size={16} />
                     <input
-                        type="text"
-                        placeholder="Search organisation name..."
+                        placeholder="Search organisations..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        style={{
-                            width: '100%',
-                            padding: '0.625rem 0.75rem 0.625rem 2.5rem',
-                            borderRadius: '0.5rem',
-                            border: '1px solid var(--theme-border, rgba(255, 255, 255, 0.15))',
-                            background: 'var(--theme-input-bg, rgba(15, 23, 42, 0.4))',
-                            color: 'inherit',
-                            fontSize: '0.875rem'
-                        }}
                     />
                 </div>
+                <select
+                    className="select-button"
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                >
+                    <option value="all">All statuses</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+                <button className="filter-button" onClick={() => refetch()}>
+                    <RefreshCw size={14} className={isLoading ? 'spin' : ''} /> Refresh
+                </button>
+            </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <Filter size={18} style={{ color: '#94a3b8' }} />
-                    <select
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        style={{
-                            padding: '0.625rem 1rem',
-                            borderRadius: '0.5rem',
-                            border: '1px solid var(--theme-border, rgba(255, 255, 255, 0.15))',
-                            background: 'var(--theme-input-bg, rgba(15, 23, 42, 0.4))',
-                            color: 'inherit',
-                            fontSize: '0.875rem',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        <option value="all">All Statuses</option>
-                        <option value="active">Active Only</option>
-                        <option value="inactive">Inactive Only</option>
-                    </select>
+            {/* Organisations Table */}
+            <div className="table-card management-table">
+                <div className="table-scroll">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Organisation</th>
+                                <th>Status</th>
+                                <th>Email</th>
+                                <th>Website</th>
+                                <th>Created</th>
+                                <th>API Activity</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {clients.length > 0 ? (
+                                clients.map((org, index) => (
+                                    <tr key={org._id || org.name}>
+                                        <td>
+                                            <div className="cell-person">
+                                                <Avatar initials={getInitials(org.name)} tone={getAvatarTone(index)} />
+                                                <div>
+                                                    <strong style={{ cursor: 'pointer' }} onClick={() => handleViewAnalytics(org)}>
+                                                        {org.name}
+                                                    </strong>
+                                                    <small style={{ display: 'block', color: '#8a93a4', fontSize: '9px' }}>
+                                                        {org.slug || 'client'}
+                                                    </small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <StatusBadge active={org.isActive !== false} />
+                                        </td>
+                                        <td>{org.email || '—'}</td>
+                                        <td className="linkish">
+                                            {org.website ? (
+                                                <a href={org.website.startsWith('http') ? org.website : `https://${org.website}`} target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>
+                                                    {org.website}
+                                                </a>
+                                            ) : (
+                                                '—'
+                                            )}
+                                        </td>
+                                        <td>
+                                            {org.createdAt
+                                                ? new Date(org.createdAt).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
+                                                : 'Oct 02, 2026'}
+                                        </td>
+                                        <td>
+                                            <span className={org.isActive !== false ? 'activity-active' : 'activity-muted'}>
+                                                <span />
+                                                {org.isActive !== false ? 'Active telemetry' : 'No recent activity'}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <button
+                                                    className="icon-button"
+                                                    title="View Analytics"
+                                                    onClick={() => handleViewAnalytics(org)}
+                                                >
+                                                    <BarChart3 size={15} style={{ color: '#4f46e5' }} />
+                                                </button>
+                                                {isSuperAdmin && (
+                                                    <>
+                                                        <button
+                                                            className="icon-button"
+                                                            title={org.isActive !== false ? 'Deactivate' : 'Activate'}
+                                                            onClick={() => handleToggleStatus(org)}
+                                                        >
+                                                            <Power size={15} style={{ color: org.isActive !== false ? '#e5484d' : '#139b69' }} />
+                                                        </button>
+                                                        <button
+                                                            className="icon-button"
+                                                            title="Delete"
+                                                            onClick={() => handleDelete(org)}
+                                                        >
+                                                            <Trash2 size={15} style={{ color: '#94a3b8' }} />
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan={7} style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>
+                                        {isLoading ? 'Loading organisations...' : 'No organisations found.'}
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div className="pagination">
+                    <span>
+                        Showing <strong>{clients.length > 0 ? `1–${clients.length}` : '0'}</strong> of <strong>{clients.length}</strong>
+                    </span>
+                    <div>
+                        <button className="page-button"><ChevronLeft size={15} /></button>
+                        <button className="page-button page-current">1</button>
+                        <button className="page-button"><ChevronRight size={15} /></button>
+                    </div>
                 </div>
             </div>
 
-            {/* List of Organisations */}
-            {isLoading ? (
-                <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
-                    <Loader2 className="animate-spin" size={32} style={{ margin: '0 auto 1rem' }} />
-                    Loading organisations...
-                </div>
-            ) : clients.length === 0 ? (
-                <div style={{
-                    padding: '3rem',
-                    textAlign: 'center',
-                    background: 'var(--theme-glass-bg, rgba(15, 23, 42, 0.4))',
-                    borderRadius: '0.75rem',
-                    border: '1px solid var(--theme-glass-border, rgba(255, 255, 255, 0.08))'
-                }}>
-                    <Building2 size={48} style={{ color: '#64748b', margin: '0 auto 1rem' }} />
-                    <h3 style={{ margin: 0, fontWeight: 600 }}>No organisations found</h3>
-                    <p style={{ color: '#94a3b8', fontSize: '0.875rem', marginTop: '0.5rem' }}>
-                        {search || statusFilter !== 'all' ? 'Try adjusting your search or filters.' : 'Click "Onboard Organisation" to add your first client.'}
-                    </p>
-                </div>
-            ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
-                    {clients.map((client) => (
-                        <div
-                            key={client._id}
-                            style={{
-                                background: 'var(--theme-glass-bg, rgba(15, 23, 42, 0.6))',
-                                backdropFilter: 'blur(12px)',
-                                borderRadius: '0.875rem',
-                                border: '1px solid var(--theme-glass-border, rgba(255, 255, 255, 0.1))',
-                                padding: '1.25rem',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                justifyContent: 'space-between',
-                                transition: 'all 0.2s ease'
-                            }}
-                        >
+            {/* Onboard Modal */}
+            {showModal && (
+                <div className="modal-backdrop" role="presentation">
+                    <div className="modal">
+                        <div className="modal-head">
                             <div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-                                        <div style={{
-                                            width: '2.5rem',
-                                            height: '2.5rem',
-                                            borderRadius: '0.625rem',
-                                            background: 'linear-gradient(135deg, #a855f7, #3b82f6)',
-                                            display: 'grid',
-                                            placeItems: 'center',
-                                            color: '#fff'
-                                        }}>
-                                            <Building2 size={20} />
-                                        </div>
-                                        <div>
-                                            <h3
-                                                onClick={() => handleViewAnalytics(client)}
-                                                style={{
-                                                    margin: 0,
-                                                    fontSize: '1.125rem',
-                                                    fontWeight: 600,
-                                                    cursor: 'pointer',
-                                                    color: '#fff',
-                                                    transition: 'color 0.2s ease'
-                                                }}
-                                                onMouseEnter={(e) => e.currentTarget.style.color = '#c084fc'}
-                                                onMouseLeave={(e) => e.currentTarget.style.color = '#fff'}
-                                                title="Click to view analytics dashboard"
-                                            >
-                                                {client.name}
-                                            </h3>
-                                            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>slug: {client.slug}</span>
-                                        </div>
-                                    </div>
-
-                                    {/* Active Status Badge */}
-                                    <span style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '0.25rem',
-                                        fontSize: '0.75rem',
-                                        fontWeight: 600,
-                                        padding: '0.25rem 0.625rem',
-                                        borderRadius: '1rem',
-                                        background: client.isActive ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                                        color: client.isActive ? '#10b981' : '#ef4444',
-                                        border: `1px solid ${client.isActive ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`
-                                    }}>
-                                        {client.isActive ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
-                                        {client.isActive ? 'Active' : 'Inactive'}
-                                    </span>
-                                </div>
-
-                                {client.description && (
-                                    <p style={{ fontSize: '0.8125rem', color: '#cbd5e1', margin: '0 0 1rem 0', lineHeight: 1.4 }}>
-                                        {client.description}
-                                    </p>
-                                )}
-
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', fontSize: '0.8125rem', color: '#94a3b8', marginBottom: '1.25rem' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <Mail size={14} /> {client.email}
-                                    </div>
-                                    {client.website && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                            <Globe size={14} /> {client.website}
-                                        </div>
-                                    )}
-                                </div>
+                                <div className="eyebrow">NEW WORKSPACE</div>
+                                <h3>Onboard organisation</h3>
+                                <p>Create a new organisation within PulseAPI.</p>
                             </div>
-
-                            {/* Actions */}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '1rem' }}>
-                                <button
-                                    onClick={() => handleViewAnalytics(client)}
-                                    style={{
-                                        width: '100%',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: '0.5rem',
-                                        padding: '0.5rem 1rem',
-                                        borderRadius: '0.5rem',
-                                        border: '1px solid rgba(168, 85, 247, 0.4)',
-                                        background: 'rgba(168, 85, 247, 0.15)',
-                                        color: '#d8b4fe',
-                                        fontWeight: 600,
-                                        fontSize: '0.8125rem',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    <BarChart3 size={16} /> View Analytics Dashboard
-                                </button>
-
-                                {isSuperAdmin && (
-                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                        <button
-                                            onClick={() => handleToggleStatus(client)}
-                                            disabled={statusMutation.isPending}
-                                            style={{
-                                                flex: 1,
-                                                padding: '0.4rem 0.5rem',
-                                                borderRadius: '0.375rem',
-                                                border: client.isActive ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(16, 185, 129, 0.4)',
-                                                background: client.isActive ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
-                                                color: client.isActive ? '#fca5a5' : '#6ee7b7',
-                                                fontSize: '0.75rem',
-                                                fontWeight: 600,
-                                                cursor: 'pointer',
-                                                transition: 'all 0.15s ease'
-                                            }}
-                                            title={client.isActive ? 'Click to deactivate organisation' : 'Click to activate organisation'}
-                                        >
-                                            {client.isActive ? 'Set Inactive' : 'Set Active'}
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(client)}
-                                            disabled={deleteMutation.isPending}
-                                            style={{
-                                                padding: '0.4rem 0.75rem',
-                                                borderRadius: '0.375rem',
-                                                border: '1px solid rgba(239, 68, 68, 0.3)',
-                                                background: 'rgba(239, 68, 68, 0.1)',
-                                                color: '#fca5a5',
-                                                fontSize: '0.75rem',
-                                                fontWeight: 500,
-                                                cursor: 'pointer'
-                                            }}
-                                        >
-                                            <Trash2 size={14} />
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
+                            <button className="icon-button" onClick={() => setShowModal(false)}>
+                                <X size={18} />
+                            </button>
                         </div>
-                    ))}
-                </div>
-            )}
-
-            {/* Create Organisation Modal */}
-            {showCreateModal && (
-                <div
-                    onClick={(e) => {
-                        if (e.target === e.currentTarget) setShowCreateModal(false);
-                    }}
-                    style={{
-                        position: 'fixed',
-                        inset: 0,
-                        zIndex: 100,
-                        background: 'rgba(0, 0, 0, 0.65)',
-                        backdropFilter: 'blur(8px)',
-                        display: 'grid',
-                        placeItems: 'center',
-                        padding: '1rem'
-                    }}
-                >
-                    <div style={{
-                        width: '100%',
-                        maxWidth: '28rem',
-                        background: 'var(--theme-glass-strong-bg, #0f172a)',
-                        border: '1px solid var(--theme-glass-border, rgba(255, 255, 255, 0.15))',
-                        borderRadius: '0.875rem',
-                        padding: '1.5rem',
-                        boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5)',
-                        position: 'relative'
-                    }}>
-                        {/* Close / Exit Button */}
-                        <button
-                            type="button"
-                            onClick={() => setShowCreateModal(false)}
-                            style={{
-                                position: 'absolute',
-                                top: '1.25rem',
-                                right: '1.25rem',
-                                background: 'rgba(255,255,255,0.06)',
-                                border: '1px solid rgba(255,255,255,0.1)',
-                                color: '#94a3b8',
-                                width: '2rem',
-                                height: '2rem',
-                                borderRadius: '50%',
-                                display: 'grid',
-                                placeItems: 'center',
-                                cursor: 'pointer',
-                                transition: 'all 0.15s ease'
-                            }}
-                        >
-                            <X size={18} />
-                        </button>
-
-                        <h2 style={{ margin: '0 0 0.5rem 0', fontSize: '1.25rem', fontWeight: 700 }}>Onboard New Organisation</h2>
-                        <p style={{ color: '#94a3b8', fontSize: '0.8125rem', margin: '0 0 1.25rem 0' }}>
-                            Register a new client organisation in the API monitoring platform.
-                        </p>
-
-                        <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem' }}>
-                                    Organisation Name *
-                                </label>
+                        <form onSubmit={handleCreate}>
+                            <div className="modal-body">
+                                <label className="field-label">Organisation name<span>*</span></label>
                                 <input
-                                    type="text"
-                                    required
+                                    className="form-input"
+                                    placeholder="e.g. Acme Technologies"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
-                                    placeholder="Acme Corporation"
-                                    style={{
-                                        width: '100%',
-                                        padding: '0.625rem 0.75rem',
-                                        borderRadius: '0.375rem',
-                                        border: '1px solid rgba(255,255,255,0.15)',
-                                        background: 'rgba(15,23,42,0.6)',
-                                        color: '#fff',
-                                        fontSize: '0.875rem'
-                                    }}
-                                />
-                            </div>
-
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem' }}>
-                                    Contact Email *
-                                </label>
-                                <input
-                                    type="email"
                                     required
+                                />
+
+                                <label className="field-label">Admin Email<span>*</span></label>
+                                <input
+                                    className="form-input"
+                                    type="email"
+                                    placeholder="engineering@acme.com"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    placeholder="admin@acme.com"
-                                    style={{
-                                        width: '100%',
-                                        padding: '0.625rem 0.75rem',
-                                        borderRadius: '0.375rem',
-                                        border: '1px solid rgba(255,255,255,0.15)',
-                                        background: 'rgba(15,23,42,0.6)',
-                                        color: '#fff',
-                                        fontSize: '0.875rem'
-                                    }}
+                                    required
                                 />
-                            </div>
 
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem' }}>
-                                    Website URL (Optional)
-                                </label>
+                                <label className="field-label">Website</label>
                                 <input
-                                    type="url"
+                                    className="form-input"
+                                    placeholder="https://acme.com"
                                     value={website}
                                     onChange={(e) => setWebsite(e.target.value)}
-                                    placeholder="https://acme.com"
-                                    style={{
-                                        width: '100%',
-                                        padding: '0.625rem 0.75rem',
-                                        borderRadius: '0.375rem',
-                                        border: '1px solid rgba(255,255,255,0.15)',
-                                        background: 'rgba(15,23,42,0.6)',
-                                        color: '#fff',
-                                        fontSize: '0.875rem'
-                                    }}
                                 />
-                            </div>
 
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem' }}>
-                                    Description (Optional)
-                                </label>
+                                <label className="field-label">Description</label>
                                 <textarea
-                                    rows={3}
+                                    className="form-input textarea"
+                                    placeholder="Add a short description..."
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
-                                    placeholder="Brief description of the client..."
-                                    style={{
-                                        width: '100%',
-                                        padding: '0.625rem 0.75rem',
-                                        borderRadius: '0.375rem',
-                                        border: '1px solid rgba(255,255,255,0.15)',
-                                        background: 'rgba(15,23,42,0.6)',
-                                        color: '#fff',
-                                        fontSize: '0.875rem',
-                                        resize: 'vertical'
-                                    }}
                                 />
                             </div>
-
-                            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                                <button
-                                    type="button"
-                                    onClick={() => setShowCreateModal(false)}
-                                    style={{
-                                        flex: 1,
-                                        padding: '0.625rem',
-                                        borderRadius: '0.375rem',
-                                        border: '1px solid rgba(255,255,255,0.15)',
-                                        background: 'transparent',
-                                        color: '#fff',
-                                        fontWeight: 500,
-                                        cursor: 'pointer'
-                                    }}
-                                >
+                            <div className="modal-foot">
+                                <button type="button" className="secondary-button" onClick={() => setShowModal(false)}>
                                     Cancel
                                 </button>
-                                <button
-                                    type="submit"
-                                    disabled={onboardMutation.isPending}
-                                    style={{
-                                        flex: 1,
-                                        padding: '0.625rem',
-                                        borderRadius: '0.375rem',
-                                        border: 'none',
-                                        background: 'linear-gradient(to right, #a855f7, #6366f1)',
-                                        color: '#fff',
-                                        fontWeight: 600,
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: '0.5rem'
-                                    }}
-                                >
-                                    {onboardMutation.isPending ? <Loader2 className="animate-spin" size={16} /> : 'Onboard'}
+                                <button type="submit" className="primary-button" disabled={onboardMutation.isPending}>
+                                    {onboardMutation.isPending ? 'Onboarding...' : 'Onboard organisation'}
                                 </button>
                             </div>
                         </form>
@@ -565,115 +352,52 @@ export function OrganisationsPage() {
                 </div>
             )}
 
-            {/* Success Modal Showing Organisation & Generated API Key */}
+            {/* Newly Created Credentials Modal */}
             {createdResult && (
-                <div style={{
-                    position: 'fixed',
-                    inset: 0,
-                    zIndex: 110,
-                    background: 'rgba(0, 0, 0, 0.7)',
-                    backdropFilter: 'blur(8px)',
-                    display: 'grid',
-                    placeItems: 'center',
-                    padding: '1rem'
-                }}>
-                    <div style={{
-                        width: '100%',
-                        maxWidth: '30rem',
-                        background: 'var(--theme-glass-strong-bg, #0f172a)',
-                        border: '1px solid rgba(16, 185, 129, 0.4)',
-                        borderRadius: '0.875rem',
-                        padding: '1.5rem',
-                        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.7)',
-                        position: 'relative'
-                    }}>
-                        <button
-                            type="button"
-                            onClick={() => setCreatedResult(null)}
-                            style={{
-                                position: 'absolute',
-                                top: '1.25rem',
-                                right: '1.25rem',
-                                background: 'rgba(255,255,255,0.06)',
-                                border: '1px solid rgba(255,255,255,0.1)',
-                                color: '#94a3b8',
-                                width: '2rem',
-                                height: '2rem',
-                                borderRadius: '50%',
-                                display: 'grid',
-                                placeItems: 'center',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            <X size={18} />
-                        </button>
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', color: '#10b981', marginBottom: '0.75rem' }}>
-                            <CheckCircle2 size={24} />
-                            <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: '#fff' }}>
-                                Organisation Onboarded Successfully!
-                            </h2>
-                        </div>
-
-                        <p style={{ fontSize: '0.875rem', color: '#cbd5e1', margin: '0 0 1rem 0' }}>
-                            <strong style={{ color: '#a855f7' }}>{createdResult.client?.name || createdResult.name}</strong> has been registered. Below is the auto-generated initial API Key for API telemetry ingestion:
-                        </p>
-
-                        {/* Generated API Key Card */}
-                        {createdResult.apiKey && (
-                            <div style={{
-                                background: 'rgba(0, 0, 0, 0.4)',
-                                border: '1px dashed rgba(16, 185, 129, 0.5)',
-                                borderRadius: '0.625rem',
-                                padding: '1rem',
-                                marginBottom: '1.25rem'
-                            }}>
-                                <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#34d399', fontWeight: 700, marginBottom: '0.375rem', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                                    <Lock size={14} /> Production API Ingestion Secret
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <code style={{ flex: 1, fontFamily: 'monospace', color: '#a7f3d0', fontSize: '0.9375rem', wordBreak: 'break-all' }}>
-                                        {createdResult.apiKey.keyValue}
-                                    </code>
-                                    <button
-                                        onClick={handleCopyKey}
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '0.375rem',
-                                            padding: '0.4rem 0.75rem',
-                                            borderRadius: '0.375rem',
-                                            border: 'none',
-                                            background: '#10b981',
-                                            color: '#fff',
-                                            fontWeight: 600,
-                                            fontSize: '0.75rem',
-                                            cursor: 'pointer'
-                                        }}
-                                    >
-                                        {keyCopied ? <Check size={14} /> : <Copy size={14} />}
-                                        {keyCopied ? 'Copied' : 'Copy'}
-                                    </button>
-                                </div>
+                <div className="modal-backdrop" role="presentation">
+                    <div className="modal">
+                        <div className="modal-head">
+                            <div>
+                                <div className="eyebrow" style={{ color: '#139b69' }}>ORGANISATION CREATED</div>
+                                <h3>{createdResult.client?.name} Setup Complete</h3>
+                                <p>Save the generated API ingestion key safely.</p>
                             </div>
-                        )}
-
-                        <button
-                            onClick={() => setCreatedResult(null)}
-                            style={{
-                                width: '100%',
-                                padding: '0.75rem',
-                                borderRadius: '0.5rem',
-                                border: 'none',
-                                background: 'linear-gradient(to right, #a855f7, #6366f1)',
-                                color: '#fff',
-                                fontWeight: 600,
-                                fontSize: '0.875rem',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            Return to Organisations Page
-                        </button>
+                            <button className="icon-button" onClick={() => setCreatedResult(null)}>
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                            <label className="field-label">Default API Ingestion Key</label>
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                background: '#f6f7fa',
+                                border: '1px solid #dfe3ea',
+                                padding: '8px 12px',
+                                borderRadius: '6px',
+                                fontFamily: 'monospace',
+                                fontSize: '11px'
+                            }}>
+                                <span style={{ flex: 1, wordBreak: 'break-all' }}>
+                                    {createdResult.apiKey?.keyValue || 'pk_live_secret_key'}
+                                </span>
+                                <button
+                                    type="button"
+                                    className="primary-button"
+                                    onClick={handleCopyKey}
+                                    style={{ padding: '6px 10px', fontSize: '10px' }}
+                                >
+                                    {keyCopied ? <Check size={14} /> : <Copy size={14} />}
+                                    {keyCopied ? 'Copied' : 'Copy'}
+                                </button>
+                            </div>
+                        </div>
+                        <div className="modal-foot">
+                            <button className="primary-button" onClick={() => setCreatedResult(null)}>
+                                Done
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

@@ -1,4 +1,5 @@
 import { isValidRole } from "../../../shared/constants/roles.js";
+import SecurityUtils from "../../../shared/utils/SecurityUtils.js";
 
 /**
  * Validation schemas for the Auth module.
@@ -12,7 +13,10 @@ export const onboardSuperAdminSchema = {
     },
     password: {
         required: true,
-        minLength: 6
+        custom: (value) => {
+            const validation = SecurityUtils.validatePassword(value);
+            return validation.success ? null : validation.errors.join('. ');
+        }
     }
 }
 
@@ -28,7 +32,10 @@ export const registrationSchema = {
     },
     password: {
         required: true,
-        minLength: 6
+        custom: (value) => {
+            const validation = SecurityUtils.validatePassword(value);
+            return validation.success ? null : validation.errors.join('. ');
+        }
     },
     role: {
         required: false,

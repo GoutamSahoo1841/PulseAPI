@@ -1,107 +1,127 @@
 import { useState } from 'react';
-import { Sidebar } from './Sidebar';
-import { Menu, X, LogOut, Clock, RefreshCw, User } from 'lucide-react';
-import { useQueryClient, useIsFetching } from '@tanstack/react-query';
-import { useTheme } from '../../contexts/ThemeContext';
+import { useLocation } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
-import { useDashboardQuery } from '../../hooks/useDashboardQuery';
-import { QUERY_KEYS } from '../../constants';
-import styles from '../../styles/modules/layout/DashboardLayout.module.scss';
+import { Sidebar } from './Sidebar';
+import {
+    Menu, ChevronRight, RefreshCw, Bell, ChevronDown
+} from 'lucide-react';
+
+function Avatar({ initials, tone = 'purple' }) {
+    return <span className={`avatar avatar-${tone}`}>{initials}</span>;
+}
 
 export function DashboardLayout({ children }) {
-    const [sidebarOpen, setSidebarOpen] = useState(false);
-    const { currentTheme } = useTheme();
-    const { user, logout, role, isSuperAdmin } = useAuth();
+    const [collapsed, setCollapsed] = useState(false);
+    const [mobileOpen, setMobileOpen] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const { user, role, isSuperAdmin } = useAuth();
+    const location = useLocation();
     const queryClient = useQueryClient();
-    const isFetching = useIsFetching({ queryKey: QUERY_KEYS.DASHBOARD }) > 0;
-    const { dataUpdatedAt } = useDashboardQuery({ notifyOnChangeProps: ['dataUpdatedAt'] });
 
-    const lastUpdated = dataUpdatedAt
-        ? new Date(dataUpdatedAt).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })
-        : '--';
-
-    const handleRefresh = () => {
-        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.DASHBOARD });
+    const getInitials = (name) => {
+        if (!name) return 'PA';
+        const parts = name.trim().split(' ');
+        if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+        return name.slice(0, 2).toUpperCase();
     };
 
-    const themeClass = currentTheme === 'purple' ? styles.themePurple : styles.themeLight;
+    const getRoleLabel = () => {
+        if (role === 'super_admin') return 'Super Admin';
+        if (role === 'client_admin') return 'Client Admin';
+        return 'Client Viewer';
+    };
+
+    const getPageTitle = (pathname) => {
+        switch (pathname) {
+            case '/':
+                return 'Analytics Overview';
+            case '/organisations':
+                return 'Organisations';
+            case '/users':
+                return isSuperAdmin ? 'System Users' : 'Team Members';
+            case '/api-keys':
+                return 'API Ingestion Keys';
+            case '/settings':
+                return 'Settings & Preferences';
+            default:
+                return 'Dashboard';
+        }
+    };
+
+    const title = getPageTitle(location.pathname);
+
+    const handleRefresh = () => {
+        setRefreshing(true);
+        queryClient.invalidateQueries();
+        setTimeout(() => setRefreshing(false), 700);
+    };
 
     return (
-        <div className={`${styles.container} ${themeClass}`}>
-            <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-            <div className={styles.mainContent}>
-                <header className={styles.header}>
-                    <div className={styles.headerContent}>
+        <div className={`app-shell ${mobileOpen ? 'sidebar-mobile-open' : ''}`}>
+            <Sidebar
+                collapsed={collapsed}
+                setCollapsed={setCollapsed}
+                mobileOpen={mobileOpen}
+                setMobileOpen={setMobileOpen}
+            />
+
+            <div className={`main-area ${collapsed ? 'sidebar-collapsed-space' : ''}`}>
+                <header className="topbar">
+                    <button
+                        className="mobile-menu"
+                        onClick={() => setMobileOpen(true)}
+                        aria-label="Open menu"
+                    >
+                        <Menu size={20} />
+                    </button>
+
+                    <div>
+                        <p className="breadcrumb">
+                            PulseAPI <ChevronRight size={13} /> {title}
+                        </p>
+                        <h1>{title}</h1>
+                    </div>
+
+                    <div className="topbar-actions">
+                        <span className="updated">
+                            <span className="live-pulse" /> Live Telemetry
+                        </span>
                         <button
-                            className={styles.mobileMenuButton}
-                            onClick={() => setSidebarOpen(!sidebarOpen)}
-                            aria-label={sidebarOpen ? 'Close menu' : 'Open menu'}
+                            className="icon-button"
+                            onClick={handleRefresh}
+                            aria-label="Refresh data"
+                            title="Refresh data"
                         >
-                            {sidebarOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
+                            <RefreshCw size={17} className={refreshing ? 'spin' : ''} />
+                        </button>
+                        <button
+                            className="notification-button"
+                            aria-label="Notifications"
+                            title="Notifications"
+                        >
+                            <Bell size={17} />
+                            <span />
                         </button>
 
-                        <div className={styles.pageTitle}>
-                            <p>
-                                <Clock aria-hidden="true" />
-                                Last updated: {lastUpdated}
-                            </p>
-                        </div>
-
-                        <div className={styles.actionButtons}>
-                            <button
-                                className={styles.refreshButton}
-                                onClick={handleRefresh}
-                                disabled={isFetching}
-                                aria-label="Refresh data"
-                            >
-                                <RefreshCw
-                                    className={isFetching ? styles.spinning : ''}
-                                    aria-hidden="true"
-                                />
-                                <span className={styles.hiddenText}>Refresh</span>
-                            </button>
-
-                            {user && (
-                                <div style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.5rem',
-                                    padding: '0.375rem 0.75rem',
-                                    borderRadius: '2rem',
-                                    background: 'rgba(255, 255, 255, 0.06)',
-                                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                                    fontSize: '0.8125rem',
-                                    marginRight: '0.5rem'
-                                }}>
-                                    <User size={14} style={{ color: isSuperAdmin ? '#c084fc' : '#60a5fa' }} />
-                                    <span style={{ fontWeight: 600 }}>{user.username}</span>
-                                    <span style={{
-                                        fontSize: '0.6875rem',
-                                        padding: '0.125rem 0.375rem',
-                                        borderRadius: '0.25rem',
-                                        background: isSuperAdmin ? 'rgba(168, 85, 247, 0.2)' : 'rgba(59, 130, 246, 0.2)',
-                                        color: isSuperAdmin ? '#d8b4fe' : '#93c5fd',
-                                        fontWeight: 700
-                                    }}>
-                                        {role === 'super_admin' ? 'SUPER ADMIN' : role === 'client_admin' ? 'CLIENT ADMIN' : 'VIEWER'}
-                                    </span>
-                                </div>
-                            )}
-
-                            <button
-                                className={styles.logoutButton}
-                                onClick={logout}
-                                aria-label="Log out"
-                            >
-                                <LogOut aria-hidden="true" />
-                                <span className={styles.hiddenText}>Logout</span>
-                            </button>
+                        <div className="top-user">
+                            <Avatar
+                                initials={getInitials(user?.username || 'User')}
+                                tone={isSuperAdmin ? 'purple' : 'blue'}
+                            />
+                            <span>
+                                <strong>{user?.username || 'User'}</strong>
+                                <small>{getRoleLabel()}</small>
+                            </span>
+                            <ChevronDown size={14} />
                         </div>
                     </div>
                 </header>
-                <main className={styles.pageContent}>
+
+                <div className={`page-wrap ${refreshing ? 'refreshing' : ''}`}>
                     {children}
-                </main>
+                </div>
             </div>
         </div>
     );

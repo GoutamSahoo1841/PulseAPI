@@ -2,6 +2,7 @@
 import logger from "../../../shared/config/logger.js";
 import { APPLICATION_ROLES, isValidClientRole } from "../../../shared/constants/roles.js";
 import AppError from "../../../shared/utils/AppError.js";
+import SecurityUtils from "../../../shared/utils/SecurityUtils.js";
 import { v4 as uudiv4 } from "uuid";
 import crypto from 'crypto';
 
@@ -147,6 +148,21 @@ export class ClientService {
             if (!isValidClientRole(role)) {
                 throw new AppError("Invalid role for client user", 400)
             };
+
+            const existingUser = await this.userRepository.findByUsername(username);
+            if (existingUser) {
+                throw new AppError("Username already exists", 409);
+            }
+
+            const existingEmail = await this.userRepository.findByEmail(email);
+            if (existingEmail) {
+                throw new AppError("Email already exists", 409);
+            }
+
+            const passwordValidation = SecurityUtils.validatePassword(password);
+            if (!passwordValidation.success) {
+                throw new AppError(passwordValidation.errors.join('. '), 400);
+            }
 
             const client = await this.clientRepository.findById(clientId);
 
@@ -385,7 +401,18 @@ export class ClientService {
                 throw new AppError('Access denied', 403);
             }
 
-            const users = await this.userRepository.findByClientId(clientId);
+            let users;
+            if (user.role === APPLICATION_ROLES.SUPER_ADMIN) {
+                if (!clientId || clientId === 'all') {
+                    users = await this.userRepository.findAllWithClients();
+                } else if (clientId === 'super_admin') {
+                    users = await this.userRepository.findSuperAdmins();
+                } else {
+                    users = await this.userRepository.findByClientId(clientId);
+                }
+            } else {
+                users = await this.userRepository.findByClientId(clientId);
+            }
             return users;
         } catch (error) {
             logger.error('Error getting client users:', error);

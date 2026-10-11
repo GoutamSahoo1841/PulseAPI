@@ -1,55 +1,40 @@
 import { NavLink } from 'react-router-dom';
-import { cn } from '../../lib/utils';
 import { useAuth } from '../../contexts/AuthContext';
 import {
-    LayoutDashboard,
-    Building2,
-    Users,
-    Key,
-    Settings,
-    Zap,
-    ShieldCheck,
-    Eye
+    Activity, LayoutDashboard, Globe2, Users, KeyRound,
+    Settings2, CircleHelp, ChevronLeft, ChevronRight,
+    ChevronDown, Layers3, LogOut, MoreHorizontal
 } from 'lucide-react';
-import styles from '../../styles/modules/layout/Sidebar.module.scss';
 
-export function Sidebar({ isOpen, onClose }) {
-    const { user, isSuperAdmin, isClientAdmin, role } = useAuth();
+function Logo({ compact = false }) {
+    return (
+        <div className="logo">
+            <span className="logo-mark">
+                <Activity size={18} strokeWidth={2.5} />
+            </span>
+            {!compact && (
+                <span>
+                    <strong>Pulse</strong>API
+                    <small>API OBSERVABILITY</small>
+                </span>
+            )}
+        </div>
+    );
+}
 
-    const navItems = [
-        {
-            title: 'Analytics Overview',
-            href: '/',
-            icon: LayoutDashboard,
-            show: true
-        },
-        {
-            title: 'Organisations',
-            href: '/organisations',
-            icon: Building2,
-            show: isSuperAdmin
-        },
-        {
-            title: isSuperAdmin ? 'System Users' : 'Team Members',
-            href: '/users',
-            icon: Users,
-            show: isSuperAdmin || isClientAdmin
-        },
-        {
-            title: 'API Ingestion Keys',
-            href: '/api-keys',
-            icon: Key,
-            show: isSuperAdmin || isClientAdmin
-        }
-    ].filter(item => item.show);
+function Avatar({ initials, tone = 'purple' }) {
+    return <span className={`avatar avatar-${tone}`}>{initials}</span>;
+}
 
-    const bottomNavItems = [
-        {
-            title: 'Settings',
-            href: '/settings',
-            icon: Settings
-        }
-    ];
+export function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
+    const { user, isSuperAdmin, isClientAdmin, role, selectedClient, logout } = useAuth();
+
+    const getInitials = (name) => {
+        if (!name) return 'PA';
+        const parts = name.trim().split(' ');
+        if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+        return name.slice(0, 2).toUpperCase();
+    };
 
     const getRoleLabel = () => {
         if (role === 'super_admin') return 'Super Admin';
@@ -57,109 +42,120 @@ export function Sidebar({ isOpen, onClose }) {
         return 'Client Viewer';
     };
 
+    const navItems = [
+        {
+            id: 'analytics',
+            label: 'Analytics Overview',
+            to: '/',
+            icon: LayoutDashboard,
+            show: true
+        },
+        {
+            id: 'organisations',
+            label: 'Organisations',
+            to: '/organisations',
+            icon: Globe2,
+            show: isSuperAdmin
+        },
+        {
+            id: 'users',
+            label: isSuperAdmin ? 'System Users' : 'Team Members',
+            to: '/users',
+            icon: Users,
+            show: isSuperAdmin || isClientAdmin
+        },
+        {
+            id: 'keys',
+            label: 'API Ingestion Keys',
+            to: '/api-keys',
+            icon: KeyRound,
+            show: isSuperAdmin || isClientAdmin
+        }
+    ].filter(i => i.show);
+
+    const userInitials = getInitials(user?.username || 'User');
+    const workspaceName = isSuperAdmin
+        ? (selectedClient ? selectedClient.name : 'PulseAPI Platform')
+        : 'Client Workspace';
+    const workspaceType = isSuperAdmin
+        ? (selectedClient ? 'Filtered View' : 'System Workspace')
+        : 'Client Workspace';
+
     return (
         <>
-            {isOpen && (
-                <div
-                    className={styles.mobileOverlay}
-                    onClick={onClose}
-                    aria-hidden="true"
-                />
-            )}
-            <aside
-                className={cn(styles.sidebar, !isOpen && styles.closed)}
-                aria-label="Sidebar"
-                aria-expanded={isOpen}
-            >
-                <div className={styles.sidebarContainer}>
-                    <div className={styles.logoSection}>
-                        <div className={cn(styles.logoIcon, 'theme-logo-bg')}>
-                            <Zap aria-hidden="true" />
-                        </div>
-                        <div className={styles.logoText}>
-                            <h2 className="theme-text-gradient">API Monitor</h2>
-                            <p>Real-Time Monitoring</p>
-                        </div>
-                    </div>
+            <div
+                className={`mobile-overlay ${mobileOpen ? 'open' : ''}`}
+                onClick={() => setMobileOpen(false)}
+            />
+            <aside className={`sidebar ${collapsed ? 'sidebar-collapsed' : ''}`}>
+                <div className="sidebar-head">
+                    <Logo compact={collapsed} />
+                    <button
+                        className="collapse-button"
+                        onClick={() => setCollapsed(!collapsed)}
+                        aria-label="Toggle sidebar"
+                    >
+                        {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+                    </button>
+                </div>
 
-                    {/* User Role Badge Card */}
-                    {user && (
-                        <div style={{
-                            margin: '0.5rem 1rem 1rem 1rem',
-                            padding: '0.75rem',
-                            borderRadius: '0.5rem',
-                            background: 'rgba(255, 255, 255, 0.04)',
-                            border: '1px solid rgba(255, 255, 255, 0.08)'
-                        }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                {isSuperAdmin ? (
-                                    <ShieldCheck size={16} style={{ color: '#a855f7' }} />
-                                ) : isClientAdmin ? (
-                                    <Building2 size={16} style={{ color: '#3b82f6' }} />
-                                ) : (
-                                    <Eye size={16} style={{ color: '#10b981' }} />
-                                )}
-                                <div style={{ fontWeight: 600, fontSize: '0.8125rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                    {user.username}
-                                </div>
-                            </div>
-                            <div style={{
-                                marginTop: '0.25rem',
-                                fontSize: '0.6875rem',
-                                fontWeight: 700,
-                                textTransform: 'uppercase',
-                                letterSpacing: '0.05em',
-                                color: isSuperAdmin ? '#c084fc' : isClientAdmin ? '#60a5fa' : '#34d399'
-                            }}>
-                                {getRoleLabel()}
-                            </div>
-                        </div>
+                <div className="workspace-switcher" title={workspaceName}>
+                    <span className="workspace-icon">
+                        <Layers3 size={16} />
+                    </span>
+                    {!collapsed && (
+                        <span>
+                            <strong>{workspaceName}</strong>
+                            <small>{workspaceType}</small>
+                        </span>
                     )}
+                    {!collapsed && <ChevronDown className="workspace-chevron" size={14} />}
+                </div>
 
-                    <nav className={styles.navigation} aria-label="Main navigation">
-                        <div className={styles.navList}>
-                            {navItems.map((item) => {
-                                const Icon = item.icon;
-                                return (
-                                    <NavLink
-                                        key={item.href}
-                                        to={item.href}
-                                        end={item.href === '/'}
-                                        onClick={onClose}
-                                        className={({ isActive }) =>
-                                            cn(styles.navLink, isActive && styles.active)
-                                        }
-                                    >
-                                        <Icon aria-hidden="true" />
-                                        <div className={styles.navItem}>
-                                            <div>{item.title}</div>
-                                        </div>
-                                    </NavLink>
-                                );
-                            })}
-                        </div>
-                    </nav>
+                <nav className="sidebar-nav">
+                    <p className="nav-label">{!collapsed && 'WORKSPACE'}</p>
+                    {navItems.map(({ id, label, to, icon: Icon }) => (
+                        <NavLink
+                            key={id}
+                            to={to}
+                            end={to === '/'}
+                            onClick={() => setMobileOpen(false)}
+                            className={({ isActive }) => (isActive ? 'nav-item nav-active' : 'nav-item')}
+                            title={collapsed ? label : undefined}
+                        >
+                            <Icon size={18} />
+                            {!collapsed && <span>{label}</span>}
+                            {!collapsed && id === 'analytics' && <span className="live-dot" />}
+                        </NavLink>
+                    ))}
+                </nav>
 
-                    <div className={styles.bottomNavigation}>
-                        {bottomNavItems.map((item) => {
-                            const Icon = item.icon;
-                            return (
-                                <NavLink
-                                    key={item.href}
-                                    to={item.href}
-                                    onClick={onClose}
-                                    className={({ isActive }) =>
-                                        cn(styles.navLink, isActive && styles.active)
-                                    }
-                                >
-                                    <Icon aria-hidden="true" />
-                                    <div className={styles.navItem}>
-                                        <div>{item.title}</div>
-                                    </div>
-                                </NavLink>
-                            );
-                        })}
+                <div className="sidebar-bottom">
+                    <NavLink
+                        to="/settings"
+                        onClick={() => setMobileOpen(false)}
+                        className={({ isActive }) => (isActive ? 'nav-item nav-active' : 'nav-item')}
+                        title={collapsed ? 'Settings' : undefined}
+                    >
+                        <Settings2 size={18} />
+                        {!collapsed && <span>Settings</span>}
+                    </NavLink>
+
+                    <div className="sidebar-user">
+                        <Avatar initials={userInitials} tone={isSuperAdmin ? 'purple' : 'blue'} />
+                        {!collapsed && (
+                            <span>
+                                <strong>{user?.username || 'User'}</strong>
+                                <small>{getRoleLabel()}</small>
+                            </span>
+                        )}
+                        {!collapsed && <MoreHorizontal size={16} />}
                     </div>
+
+                    <button className="logout-button nav-item" onClick={logout}>
+                        <LogOut size={16} />
+                        {!collapsed && 'Sign out'}
+                    </button>
                 </div>
             </aside>
         </>
