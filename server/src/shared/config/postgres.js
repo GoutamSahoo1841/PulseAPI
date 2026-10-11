@@ -20,6 +20,9 @@ class PostgresConnection {
                 max: 20,
                 idleTimeoutMillis: 30000,
                 connectionTimeoutMillis: 2000,
+                ssl: process.env.PG_SSL === 'true'
+                    ? { rejectUnauthorized: true }
+                    : false,
             })
 
             this.pool.on("error", err => {

@@ -23,6 +23,7 @@ const config = {
         database: process.env.PG_DATABASE || 'api_monitoring',
         user: process.env.PG_USER || 'postgres',
         password: process.env.PG_PASSWORD || 'postgres',
+        ssl: process.env.PG_SSL === 'true'
     },
 
     // RabbitMQ
@@ -48,7 +49,7 @@ const config = {
     cookie: {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        expiresIn: 24 * 60 * 60 * 1000 
+        expiresIn: 24 * 60 * 60 * 1000
     }
 }
 
