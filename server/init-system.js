@@ -39,10 +39,14 @@ async function initSystem() {
 
         const existingSuperAdmin = await User.findOne({ role: 'super_admin' });
         if (!existingSuperAdmin) {
+            const adminUsername = process.env.INITIAL_ADMIN_USERNAME || 'admin';
+            const adminEmail = process.env.INITIAL_ADMIN_EMAIL || 'admin@example.com';
+            const adminPassword = process.env.INITIAL_ADMIN_PASSWORD || 'AdminPassword123!';
+
             const superAdmin = new User({
-                username: 'admin',
-                email: 'admin@example.com',
-                password: 'AdminPassword123!',
+                username: adminUsername,
+                email: adminEmail,
+                password: adminPassword,
                 role: 'super_admin',
                 permissions: {
                     canCreateApiKeys: true,
@@ -53,9 +57,9 @@ async function initSystem() {
             });
             await superAdmin.save();
             console.log('✅ Super Admin user created successfully!');
-            console.log('   Username: admin');
-            console.log('   Email: admin@example.com');
-            console.log('   Password: AdminPassword123!');
+            console.log(`   Username: ${adminUsername}`);
+            console.log(`   Email: ${adminEmail}`);
+            console.log(`   Password: [Configured]`);
         } else {
             console.log(`✅ Super Admin already exists (${existingSuperAdmin.username})`);
         }

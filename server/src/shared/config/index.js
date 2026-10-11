@@ -35,7 +35,7 @@ const config = {
     },
 
     jwt: {
-        secret: process.env.JWT_SECRET || "SecreteKey011",
+        secret: process.env.JWT_SECRET || "dev-jwt-secret-change-in-production",
         expiresIn: process.env.JWT_EXPIRES_IN || '24h',
     },
 
