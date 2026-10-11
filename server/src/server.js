@@ -25,14 +25,22 @@ const app = express();
 /**
  * Middlewares
  */
+app.set("trust proxy", 1);
 app.use(helmet());
 const allowedOrigins = (process.env.CLIENT_URL || "")
     .split(",")
-    .map((origin) => origin.trim())
+    .map((origin) => origin.trim().replace(/\/+$/, ''))
     .filter(Boolean);
 
 app.use(cors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        const cleanOrigin = origin.replace(/\/+$/, '');
+        if (allowedOrigins.length === 0 || allowedOrigins.includes(cleanOrigin) || allowedOrigins.includes('*')) {
+            return callback(null, true);
+        }
+        return callback(null, false);
+    },
     credentials: true
 }));
 app.use(cookieParser())
