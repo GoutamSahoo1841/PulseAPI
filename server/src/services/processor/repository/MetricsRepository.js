@@ -38,7 +38,7 @@ export class MetricsRepository extends BaseRepository {
                total_hits = endpoint_metrics.total_hits + EXCLUDED.total_hits,
                error_hits = endpoint_metrics.error_hits + EXCLUDED.error_hits,
                avg_latency = (
-                (endpoint_metrics.avg_latency * endpoint_metrics.total_hits) + (EXCLUDED.avg_latency * EXCLUDED.total_hits) / (endpoint_metrics.total_hits + EXCLUDED.total_hits) 
+                ((endpoint_metrics.avg_latency * endpoint_metrics.total_hits) + (EXCLUDED.avg_latency * EXCLUDED.total_hits)) / (endpoint_metrics.total_hits + EXCLUDED.total_hits) 
                ),
                 min_latency = LEAST(endpoint_metrics.min_latency, EXCLUDED.min_latency),
                 max_latency = GREATEST(endpoint_metrics.max_latency, EXCLUDED.max_latency),

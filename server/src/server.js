@@ -16,6 +16,7 @@ import authRouter from "./services/auth/routes/authRouter.js";
 import clientRouter from './services/client/routes/clientRoutes.js';
 import ingestRouter from "./services/ingest/routes/ingestRoutes.js"
 import analyticsRouter from "./services/analytics/routes/analyticsRoutes.js"
+import { consumer, startConsumerWithRetry } from "./services/processor/consumer.js";
 
 /**
  * Initialize Express app
@@ -153,6 +154,13 @@ async function startServer() {
             logger.info(`API available at: http://localhost:${config.port}`);
         });
 
+        // Start background consumer unless explicitly disabled for multi-container deployments
+        if (process.env.RUN_CONSUMER !== 'false') {
+            logger.info('Starting in-process event consumer for telemetry queue...');
+            startConsumerWithRetry().catch((err) => {
+                logger.error('Failed to start in-process consumer:', err);
+            });
+        }
 
         const gracefulShutdown = async (signal) => {
             logger.info(`${signal} received, shutting down gracefully...`);
@@ -161,6 +169,9 @@ async function startServer() {
                 logger.info("HTTP server closed");
 
                 try {
+                    if (consumer && consumer.isRunning) {
+                        await consumer.stop();
+                    }
                     await mongodb.disconnect();
                     await postgres.close();
                     await rabbitmq.close();

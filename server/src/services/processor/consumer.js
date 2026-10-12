@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import url from 'url';
 import rabbitmq from '../../shared/config/rabbitmq.js';
 import mongodb from '../../shared/config/mongodb.js';
 import postgres from '../../shared/config/postgres.js';
@@ -38,7 +39,10 @@ class EventConsumer {
     async start() {
         try {
             await this._connectDatabases();
-            this.channel = await this._rabbitmq.connect();
+            if (!this._rabbitmq.connection) {
+                await this._rabbitmq.connect();
+            }
+            this.channel = await this._rabbitmq.connection.createChannel();
             const prefetch = this._config.consumer?.prefetch || 10;
             this.channel.prefetch(prefetch);
 
@@ -112,8 +116,12 @@ class EventConsumer {
 
     async _reconnect() {
         try {
-            await new Promise(resolve => setTimeout(resolve, 5000))
-            this.channel = await this._rabbitmq.connect()
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            if (!this.isRunning) return;
+            if (!this._rabbitmq.connection) {
+                await this._rabbitmq.connect();
+            }
+            this.channel = await this._rabbitmq.connection.createChannel();
             const prefetch = this._config.consumer?.prefetch || 10;
             this.channel.prefetch(prefetch);
 
@@ -130,10 +138,11 @@ class EventConsumer {
             await this.channel.consume(
                 this._config.rabbitmq.queue,
                 async (msg) => {
-                    if (msg !== null) await this._handleMessage(msg)
+                    if (msg !== null) await this._handleMessage(msg);
                 },
                 { noAck: false, consumerTag: `consumer-${Date.now()}` }
-            )
+            );
+            this._logger.info('Consumer reconnected and resumed consuming');
         } catch (error) {
             this._logger.error('Failed to reconnect:', error);
             if (this.isRunning) {
@@ -191,9 +200,14 @@ class EventConsumer {
                 throw new Error(`Schema validation failed: ${parsed.error.issues.map(i => i.message).join(', ')}`);
             }
 
+            const messageId = msg.properties.messageId ||
+                messageData.messageId ||
+                messageData.data?.eventId ||
+                `msg_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
             return {
                 ...parsed.data,
-                messageId: msg.properties.messageId || messageData.messageId || "unknown",
+                messageId,
                 retryCount: parseInt(msg.properties.headers?.['x-retry-count'] || 0)
             }
         } catch (error) {
@@ -286,15 +300,16 @@ class EventConsumer {
         this._stats.retried++;
     };
 
-    async stop() {
+    async stop(closeConnections = false) {
         try {
             await this._cleanup();
-
-            await Promise.all([
-                this._rabbitmq.close(),
-                this._mongodb.disconnect(),
-                this._postgres.close()
-            ]);
+            if (closeConnections) {
+                await Promise.all([
+                    this._rabbitmq.close(),
+                    this._mongodb.disconnect(),
+                    this._postgres.close()
+                ]);
+            }
         } catch (error) {
             this._logger.error('Error stopping consumer:', error);
         }
@@ -350,28 +365,38 @@ async function startConsumerWithRetry() {
     }
 }
 
-process.on('SIGINT', async () => {
-    logger.info('Received SIGINT, shutting down gracefully...');
-    await consumer.stop();
-    process.exit(0);
-});
+const isDirectRun = Boolean(
+    process.argv[1] && (
+        process.argv[1].endsWith('consumer.js') ||
+        (process.argv[1] && url.pathToFileURL(process.argv[1]).href === import.meta.url)
+    )
+);
 
-process.on('SIGTERM', async () => {
-    logger.info('Received SIGTERM, shutting down gracefully...');
-    await consumer.stop();
-    process.exit(0);
-});
+if (isDirectRun) {
+    process.on('SIGINT', async () => {
+        logger.info('Received SIGINT, shutting down gracefully...');
+        await consumer.stop(true);
+        process.exit(0);
+    });
 
-process.on('uncaughtException', (error) => {
-    logger.error('Uncaught exception:', error);
-    process.exit(1);
-});
+    process.on('SIGTERM', async () => {
+        logger.info('Received SIGTERM, shutting down gracefully...');
+        await consumer.stop(true);
+        process.exit(0);
+    });
 
-process.on('unhandledRejection', (reason, promise) => {
-    logger.error('Unhandled promise rejection at:', promise, 'reason:', reason);
-    process.exit(1);
-});
+    process.on('uncaughtException', (error) => {
+        logger.error('Uncaught exception:', error);
+        process.exit(1);
+    });
 
-startConsumerWithRetry();
+    process.on('unhandledRejection', (reason, promise) => {
+        logger.error('Unhandled promise rejection at:', promise, 'reason:', reason);
+        process.exit(1);
+    });
 
+    startConsumerWithRetry();
+}
+
+export { consumer, startConsumerWithRetry };
 export default consumer;
