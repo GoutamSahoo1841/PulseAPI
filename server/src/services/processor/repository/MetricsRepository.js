@@ -37,12 +37,16 @@ export class MetricsRepository extends BaseRepository {
             DO UPDATE SET
                total_hits = endpoint_metrics.total_hits + EXCLUDED.total_hits,
                error_hits = endpoint_metrics.error_hits + EXCLUDED.error_hits,
-               avg_latency = (
-                ((endpoint_metrics.avg_latency * endpoint_metrics.total_hits) + (EXCLUDED.avg_latency * EXCLUDED.total_hits)) / (endpoint_metrics.total_hits + EXCLUDED.total_hits) 
+               avg_latency = ROUND(
+                (
+                    (COALESCE(endpoint_metrics.avg_latency, 0) * COALESCE(endpoint_metrics.total_hits, 0)) + 
+                    (COALESCE(EXCLUDED.avg_latency, 0) * COALESCE(EXCLUDED.total_hits, 1))
+                ) / NULLIF(COALESCE(endpoint_metrics.total_hits, 0) + COALESCE(EXCLUDED.total_hits, 1), 0),
+                2
                ),
-                min_latency = LEAST(endpoint_metrics.min_latency, EXCLUDED.min_latency),
-                max_latency = GREATEST(endpoint_metrics.max_latency, EXCLUDED.max_latency),
-                updated_at = CURRENT_TIMESTAMP
+               min_latency = LEAST(endpoint_metrics.min_latency, EXCLUDED.min_latency),
+               max_latency = GREATEST(endpoint_metrics.max_latency, EXCLUDED.max_latency),
+               updated_at = CURRENT_TIMESTAMP
             `
 
             await this._query(query, [
@@ -76,9 +80,9 @@ export class MetricsRepository extends BaseRepository {
                 method,
                 SUM(total_hits) as total_hits,
                 SUM(error_hits) as error_hits,
-                SUM(avg_latency * total_hits) / NULLIF(SUM(total_hits), 0) as avg_latency,
-                MIN(min_latency) as min_latency,
-                MAX(max_latency) as max_latency,
+                ROUND(COALESCE(SUM(avg_latency * total_hits) / NULLIF(SUM(total_hits), 0), 0), 2) as avg_latency,
+                ROUND(MIN(min_latency), 2) as min_latency,
+                ROUND(MAX(max_latency), 2) as max_latency,
                 time_bucket
             FROM endpoint_metrics
             `
@@ -152,7 +156,7 @@ export class MetricsRepository extends BaseRepository {
           endpoint,
           method,
           SUM(total_hits) as total_hits,
-          SUM(avg_latency * total_hits) / NULLIF(SUM(total_hits), 0) as avg_latency,
+          ROUND(COALESCE(SUM(avg_latency * total_hits) / NULLIF(SUM(total_hits), 0), 0), 2) as avg_latency,
           SUM(error_hits) as error_hits
         FROM endpoint_metrics
       `;
@@ -193,9 +197,9 @@ export class MetricsRepository extends BaseRepository {
         try {
             let query = `
         SELECT
-          SUM(total_hits) as total_hits,
-          SUM(error_hits) as error_hits,
-          SUM(avg_latency * total_hits) / NULLIF(SUM(total_hits), 0) as avg_latency,
+          COALESCE(SUM(total_hits), 0) as total_hits,
+          COALESCE(SUM(error_hits), 0) as error_hits,
+          ROUND(COALESCE(SUM(avg_latency * total_hits) / NULLIF(SUM(total_hits), 0), 0), 2) as avg_latency,
           COUNT(DISTINCT service_name) as unique_services,
           COUNT(DISTINCT endpoint) as unique_endpoints
         FROM endpoint_metrics

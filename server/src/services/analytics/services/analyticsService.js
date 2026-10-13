@@ -27,7 +27,7 @@ export class AnalyticsService {
                 errorHits,
                 successHits: totalHits - errorHits,
                 errorRate: parseFloat(errorRate.toFixed(2)),
-                avgLatency: parseFloat(stats.avg_latency) || 0,
+                avgLatency: parseFloat(stats.avg_latency) ? parseFloat(parseFloat(stats.avg_latency).toFixed(2)) : 0,
                 uniqueServices: parseInt(stats.unique_services) || 0,
                 uniqueEndpoints: parseInt(stats.unique_endpoints) || 0,
                 timeRange: {
@@ -75,11 +75,11 @@ export class AnalyticsService {
                 serviceName: endpoint.service_name,
                 endpoint: endpoint.endpoint,
                 method: endpoint.method,
-                totalHits: parseInt(endpoint.total_hits),
-                avgLatency: parseFloat(endpoint.avg_latency).toFixed(2),
-                errorHits: parseInt(endpoint.error_hits),
+                totalHits: parseInt(endpoint.total_hits) || 0,
+                avgLatency: parseFloat(endpoint.avg_latency) ? parseFloat(parseFloat(endpoint.avg_latency).toFixed(2)) : 0,
+                errorHits: parseInt(endpoint.error_hits) || 0,
                 errorRate: parseFloat(
-                    (parseInt(endpoint.error_hits) / parseInt(endpoint.total_hits)) * 100
+                    ((parseInt(endpoint.error_hits) || 0) / (parseInt(endpoint.total_hits) || 1)) * 100
                 ).toFixed(2),
             }))
         } catch (error) {
@@ -100,11 +100,11 @@ export class AnalyticsService {
                 serviceName: metric.service_name,
                 endpoint: metric.endpoint,
                 method: metric.method,
-                totalHits: parseInt(metric.total_hits),
-                errorHits: parseInt(metric.error_hits),
-                avgLatency: parseFloat(metric.avg_latency).toFixed(2),
-                minLatency: parseFloat(metric.min_latency).toFixed(2),
-                maxLatency: parseFloat(metric.max_latency).toFixed(2),
+                totalHits: parseInt(metric.total_hits) || 0,
+                errorHits: parseInt(metric.error_hits) || 0,
+                avgLatency: parseFloat(metric.avg_latency) ? parseFloat(parseFloat(metric.avg_latency).toFixed(2)) : 0,
+                minLatency: parseFloat(metric.min_latency) ? parseFloat(parseFloat(metric.min_latency).toFixed(2)) : 0,
+                maxLatency: parseFloat(metric.max_latency) ? parseFloat(parseFloat(metric.max_latency).toFixed(2)) : 0,
                 timeBucket: metric.time_bucket,
             }))
         } catch (error) {

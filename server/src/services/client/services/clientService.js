@@ -283,12 +283,11 @@ export class ClientService {
             const apiKeys = await this.apiKeyRepository.findByClientId(clientId);
 
             const formattedResponse = apiKeys.map(key => {
-                const keyObj = key.toObject ? key.toObject() : key;
-                delete keyObj.keyValue;
-                return keyObj
-            })
+                const keyObj = key.toObject ? key.toObject() : { ...key };
+                return keyObj;
+            });
 
-            return formattedResponse
+            return formattedResponse;
 
         } catch (error) {
             logger.error('Error getting client API keys:', error);

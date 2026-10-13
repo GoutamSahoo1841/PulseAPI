@@ -52,7 +52,14 @@ export function UsersPage() {
     });
     const clients = clientsData?.data || [];
 
-    const effectiveClientId = isSuperAdmin ? (selectedClientId || 'all') : currentUser?.clientId;
+    const extractId = (val) => {
+        if (!val) return '';
+        if (typeof val === 'object' && val._id) return String(val._id);
+        return String(val);
+    };
+
+    const rawEffectiveClient = isSuperAdmin ? (selectedClientId || 'all') : (currentUser?.clientId || selectedClient?._id || '');
+    const effectiveClientId = isSuperAdmin ? rawEffectiveClient : extractId(rawEffectiveClient);
 
     const { data: usersData, isLoading, refetch } = useQuery({
         queryKey: ['users', effectiveClientId],
@@ -82,16 +89,17 @@ export function UsersPage() {
                 return clientApi.createClientUser(payload.clientId, payload);
             }
         },
-        onSuccess: (res) => {
-            if (res.success) {
-                showToast('User account created successfully!', 'success');
+        onSuccess: async (res) => {
+            if (res?.success || res?.data || res?.statusCode === 201) {
+                showToast('Team member added successfully!', 'success');
                 setShowModal(false);
                 setUsername('');
                 setEmail('');
                 setPassword('');
-                queryClient.invalidateQueries({ queryKey: ['users'] });
+                await queryClient.invalidateQueries({ queryKey: ['users'] });
+                await refetch();
             } else {
-                showToast(res.message || 'Failed to create user', 'error');
+                showToast(res?.message || 'Failed to create user', 'error');
             }
         },
         onError: (err) => {
@@ -105,9 +113,10 @@ export function UsersPage() {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        const payloadClientId = targetRole === 'super_admin'
+        const rawTargetClient = targetRole === 'super_admin'
             ? undefined
-            : (isSuperAdmin ? modalClientId : (selectedClientId || currentUser?.clientId));
+            : (isSuperAdmin ? modalClientId : (selectedClientId || currentUser?.clientId || selectedClient?._id));
+        const payloadClientId = rawTargetClient ? extractId(rawTargetClient) : undefined;
 
         if (targetRole !== 'super_admin' && !payloadClientId) {
             showToast('Please select an organisation for this user', 'error');
@@ -193,7 +202,16 @@ export function UsersPage() {
                     <option value="client_viewer">Client Viewer</option>
                 </select>
 
-                <button className="filter-button" onClick={() => refetch()}>
+                <button 
+                    className="filter-button" 
+                    onClick={async () => {
+                        await queryClient.invalidateQueries({ queryKey: ['users'] });
+                        await refetch();
+                        showToast('Users list refreshed', 'info');
+                    }}
+                    disabled={isLoading}
+                    title="Refresh team members list"
+                >
                     <RefreshCw size={14} className={isLoading ? 'spin' : ''} /> Refresh
                 </button>
             </div>

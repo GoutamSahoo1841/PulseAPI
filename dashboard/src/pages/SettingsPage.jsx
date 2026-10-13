@@ -78,7 +78,7 @@ export function SettingsPage() {
                         <div>
                             <label className="field-label">Telemetry Ingestion Endpoint</label>
                             <div className="form-input" style={{ display: 'flex', alignItems: 'center', fontFamily: 'monospace', fontSize: '11px', color: '#4f46e5' }}>
-                                http://localhost:5000/api/ingest/hits
+                                http://localhost:5000/api/hit
                             </div>
                         </div>
 

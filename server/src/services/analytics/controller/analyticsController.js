@@ -124,16 +124,17 @@ export class AnalyticsController {
 
             const result = await Promise.allSettled([
                 this.analyticsService.getOverallStats(finalClientId, timeRange),
-                this.analyticsService.getTopEndpoints(finalClientId, { limit: 5, startTime: timeRange.startTime }),
-                this.analyticsService.getTimeSeries(finalClientId, { ...timeRange, limit: 24 }),
+                this.analyticsService.getTopEndpoints(finalClientId, { limit: parseInt(req.query.limit, 10) || 50, startTime: timeRange.startTime }),
+                this.analyticsService.getTimeSeries(finalClientId, { ...timeRange, limit: 48 }),
             ]);
 
             const [stats, topEndpoints, recentTimeSeries] = result.map((item) => item.status === "fulfilled" ? item.value : null)
 
             const dashboard = {
-                stats,
-                topEndpoints,
-                recentActitivy: recentTimeSeries
+                stats: stats || null,
+                topEndpoints: topEndpoints || [],
+                recentActivity: recentTimeSeries || [],
+                recentActitivy: recentTimeSeries || []
             }
 
             res.status(200).json(

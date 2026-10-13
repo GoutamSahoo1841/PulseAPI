@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import {
     Plus, Search, KeyRound, ChevronDown, ChevronLeft, ChevronRight,
-    X, MoreHorizontal, Copy, Check, RefreshCw
+    X, MoreHorizontal, Copy, Check, RefreshCw, Eye, EyeOff, Code, Terminal
 } from 'lucide-react';
 
 function StatusBadge({ active }) {
@@ -36,6 +36,10 @@ export function ApiKeysPage() {
     const [showModal, setShowModal] = useState(false);
     const [newlyCreatedKey, setNewlyCreatedKey] = useState(null);
     const [keyCopied, setKeyCopied] = useState(false);
+    const [visibleKeys, setVisibleKeys] = useState({});
+    const [copiedKeyId, setCopiedKeyId] = useState(null);
+    const [showGuideModal, setShowGuideModal] = useState(false);
+    const [guideKey, setGuideKey] = useState('');
 
     // Form fields
     const [name, setName] = useState('');
@@ -103,10 +107,33 @@ export function ApiKeysPage() {
         }
     };
 
+    const handleCopySpecificKey = (keyVal, id) => {
+        if (!keyVal) {
+            showToast('No key value available to copy', 'error');
+            return;
+        }
+        navigator.clipboard.writeText(keyVal);
+        setCopiedKeyId(id);
+        showToast('API Key copied to clipboard!', 'info');
+        setTimeout(() => setCopiedKeyId(null), 2500);
+    };
+
+    const toggleKeyVisibility = (keyId) => {
+        setVisibleKeys(prev => ({
+            ...prev,
+            [keyId]: !prev[keyId]
+        }));
+    };
+
+    const openGuide = (keyVal) => {
+        setGuideKey(keyVal || filteredKeys[0]?.keyValue || 'pk_live_your_api_key_here');
+        setShowGuideModal(true);
+    };
+
     const maskKey = (keyVal) => {
         if (!keyVal) return 'pk_live_••••••••8F2A';
-        if (keyVal.length <= 8) return keyVal;
-        return `${keyVal.slice(0, 7)}••••••••${keyVal.slice(-4)}`;
+        if (keyVal.length <= 10) return keyVal;
+        return `${keyVal.slice(0, 8)}••••••••${keyVal.slice(-4)}`;
     };
 
     const filteredKeys = keyList.filter(k => {
@@ -129,11 +156,16 @@ export function ApiKeysPage() {
                             : 'Manage ingestion credentials for your organisation.'}
                     </p>
                 </div>
-                {canManageKeys && (
-                    <button className="primary-button" onClick={() => setShowModal(true)}>
-                        <Plus size={16} /> Create ingestion key
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <button className="secondary-button" onClick={() => openGuide(filteredKeys[0]?.keyValue)}>
+                        <Code size={16} /> How to implement in website
                     </button>
-                )}
+                    {canManageKeys && (
+                        <button className="primary-button" onClick={() => setShowModal(true)}>
+                            <Plus size={16} /> Create ingestion key
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Search & Filters */}
@@ -197,10 +229,77 @@ export function ApiKeysPage() {
                                     <tr key={k._id || k.keyValue}>
                                         <td>
                                             <div className="key-cell">
-                                                <KeyRound size={16} />
+                                                <KeyRound size={16} style={{ color: '#4f46e5', marginTop: '3px' }} />
                                                 <div>
-                                                    <strong>{k.name || 'API Key'}</strong>
-                                                    <small>{maskKey(k.keyValue)}</small>
+                                                    <strong style={{ display: 'block', fontSize: '13px' }}>{k.name || 'API Key'}</strong>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                                                        <code style={{
+                                                            background: visibleKeys[k._id] ? '#eef2ff' : '#f1f5f9',
+                                                            color: visibleKeys[k._id] ? '#4338ca' : '#475569',
+                                                            padding: '2px 8px',
+                                                            borderRadius: '4px',
+                                                            fontFamily: 'monospace',
+                                                            fontSize: '11px',
+                                                            fontWeight: '500',
+                                                            border: '1px solid ' + (visibleKeys[k._id] ? '#c7d2fe' : '#e2e8f0'),
+                                                            letterSpacing: visibleKeys[k._id] ? '0px' : '0.5px'
+                                                        }}>
+                                                            {visibleKeys[k._id] ? (k.keyValue || 'pk_live_••••••••8F2A') : maskKey(k.keyValue)}
+                                                        </code>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => toggleKeyVisibility(k._id)}
+                                                            title={visibleKeys[k._id] ? 'Hide API key' : 'Show API key'}
+                                                            style={{
+                                                                background: '#f8fafc',
+                                                                border: '1px solid #cbd5e1',
+                                                                borderRadius: '4px',
+                                                                cursor: 'pointer',
+                                                                padding: '3px 6px',
+                                                                display: 'inline-flex',
+                                                                alignItems: 'center',
+                                                                color: '#475569'
+                                                            }}
+                                                        >
+                                                            {visibleKeys[k._id] ? <EyeOff size={13} /> : <Eye size={13} />}
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleCopySpecificKey(k.keyValue, k._id)}
+                                                            title="Copy API key"
+                                                            style={{
+                                                                background: copiedKeyId === k._id ? '#ecfdf5' : '#f8fafc',
+                                                                border: '1px solid ' + (copiedKeyId === k._id ? '#10b981' : '#cbd5e1'),
+                                                                borderRadius: '4px',
+                                                                cursor: 'pointer',
+                                                                padding: '3px 6px',
+                                                                display: 'inline-flex',
+                                                                alignItems: 'center',
+                                                                gap: '4px',
+                                                                fontSize: '11px',
+                                                                color: copiedKeyId === k._id ? '#059669' : '#475569'
+                                                            }}
+                                                        >
+                                                            {copiedKeyId === k._id ? <Check size={13} /> : <Copy size={13} />}
+                                                            <span>{copiedKeyId === k._id ? 'Copied' : 'Copy'}</span>
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => openGuide(k.keyValue)}
+                                                            title="View integration guide for this key"
+                                                            style={{
+                                                                background: 'none',
+                                                                border: 'none',
+                                                                color: '#4f46e5',
+                                                                fontSize: '11px',
+                                                                cursor: 'pointer',
+                                                                textDecoration: 'underline',
+                                                                padding: '2px 4px'
+                                                            }}
+                                                        >
+                                                            Implement
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </td>
@@ -364,6 +463,149 @@ export function ApiKeysPage() {
                         </div>
                         <div className="modal-foot">
                             <button className="primary-button" onClick={() => setNewlyCreatedKey(null)}>
+                                Done
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Website Implementation Guide Modal */}
+            {showGuideModal && (
+                <div className="modal-backdrop" role="presentation" onClick={() => setShowGuideModal(false)}>
+                    <div className="modal" style={{ maxWidth: '680px', width: '92%' }} onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-head">
+                            <div>
+                                <div className="eyebrow" style={{ color: '#4f46e5' }}>INTEGRATION GUIDE</div>
+                                <h3>Implement in Your Organisation Website</h3>
+                                <p>Send API traffic telemetry to PulseAPI using your active Ingestion Key.</p>
+                            </div>
+                            <button className="icon-button" onClick={() => setShowGuideModal(false)}>
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+                            <div style={{ marginBottom: '16px' }}>
+                                <label className="field-label">Your Ingestion API Key</label>
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    background: '#f8fafc',
+                                    border: '1px solid #cbd5e1',
+                                    padding: '8px 12px',
+                                    borderRadius: '6px',
+                                    fontFamily: 'monospace',
+                                    fontSize: '12px'
+                                }}>
+                                    <span style={{ flex: 1, wordBreak: 'break-all', color: '#1e293b', fontWeight: '600' }}>
+                                        {guideKey || 'pk_live_your_api_key_here'}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        className="primary-button"
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(guideKey || '');
+                                            showToast('API Key copied to clipboard!', 'info');
+                                        }}
+                                        style={{ padding: '6px 10px', fontSize: '11px' }}
+                                    >
+                                        <Copy size={13} /> Copy Key
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div style={{ marginBottom: '18px' }}>
+                                <h4 style={{ fontSize: '13px', marginBottom: '6px', color: '#1e293b' }}>
+                                    1. Ingestion Endpoint URL
+                                </h4>
+                                <div style={{
+                                    background: '#0f172a',
+                                    color: '#38bdf8',
+                                    padding: '10px 12px',
+                                    borderRadius: '6px',
+                                    fontFamily: 'monospace',
+                                    fontSize: '12px',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center'
+                                }}>
+                                    <span>POST http://localhost:5000/api/hit</span>
+                                    <span style={{ color: '#94a3b8', fontSize: '11px' }}>Header: x-api-key</span>
+                                </div>
+                            </div>
+
+                            <div style={{ marginBottom: '18px' }}>
+                                <h4 style={{ fontSize: '13px', marginBottom: '6px', color: '#1e293b' }}>
+                                    2. Express.js Middleware Integration (Node.js)
+                                </h4>
+                                <pre style={{
+                                    background: '#0f172a',
+                                    color: '#e2e8f0',
+                                    padding: '12px',
+                                    borderRadius: '6px',
+                                    fontSize: '11px',
+                                    overflowX: 'auto',
+                                    lineHeight: '1.5'
+                                }}>
+{`// middleware/monitoring.js
+const axios = require('axios');
+
+module.exports = function monitoringMiddleware(req, res, next) {
+    const startTime = Date.now();
+    const originalEnd = res.end;
+
+    res.end = function (...args) {
+        const responseTime = Date.now() - startTime;
+        
+        // Asynchronously report telemetry to PulseAPI
+        axios.post('http://localhost:5000/api/hit', {
+            serviceName: 'client-website',
+            endpoint: req.originalUrl || req.url,
+            method: req.method,
+            statusCode: res.statusCode,
+            latencyMs: responseTime
+        }, {
+            headers: { 'x-api-key': '${guideKey || 'YOUR_API_KEY'}' }
+        }).catch(() => {}); // non-blocking
+
+        originalEnd.apply(res, args);
+    };
+    next();
+};
+
+// In your server.js or app.js:
+// app.use(monitoringMiddleware);`}
+                                </pre>
+                            </div>
+
+                            <div>
+                                <h4 style={{ fontSize: '13px', marginBottom: '6px', color: '#1e293b' }}>
+                                    3. Quick cURL Test
+                                </h4>
+                                <pre style={{
+                                    background: '#0f172a',
+                                    color: '#a7f3d0',
+                                    padding: '12px',
+                                    borderRadius: '6px',
+                                    fontSize: '11px',
+                                    overflowX: 'auto',
+                                    lineHeight: '1.4'
+                                }}>
+{`curl -X POST http://localhost:5000/api/hit \\
+  -H "Content-Type: application/json" \\
+  -H "x-api-key: ${guideKey || 'YOUR_API_KEY'}" \\
+  -d '{
+    "serviceName": "website-service",
+    "endpoint": "/api/checkout",
+    "method": "POST",
+    "statusCode": 200,
+    "latencyMs": 85
+  }'`}
+                                </pre>
+                            </div>
+                        </div>
+                        <div className="modal-foot">
+                            <button className="primary-button" onClick={() => setShowGuideModal(false)}>
                                 Done
                             </button>
                         </div>

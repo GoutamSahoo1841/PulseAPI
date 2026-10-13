@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
 import { Sidebar } from './Sidebar';
 import {
     Menu, ChevronRight, RefreshCw, Bell, ChevronDown
@@ -52,10 +53,16 @@ export function DashboardLayout({ children }) {
 
     const title = getPageTitle(location.pathname);
 
-    const handleRefresh = () => {
+    const { showToast } = useToast();
+
+    const handleRefresh = async () => {
         setRefreshing(true);
-        queryClient.invalidateQueries();
-        setTimeout(() => setRefreshing(false), 700);
+        try {
+            await queryClient.invalidateQueries();
+            showToast('All data refreshed', 'info');
+        } finally {
+            setTimeout(() => setRefreshing(false), 700);
+        }
     };
 
     return (
