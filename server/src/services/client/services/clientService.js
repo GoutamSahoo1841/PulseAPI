@@ -5,6 +5,7 @@ import AppError from "../../../shared/utils/AppError.js";
 import SecurityUtils from "../../../shared/utils/SecurityUtils.js";
 import { v4 as uudiv4 } from "uuid";
 import crypto from 'crypto';
+import LRUCache from "../../../shared/utils/LRUCache.js";
 
 /**
  * ClientService class to handle business logic related to clients
@@ -39,6 +40,12 @@ export class ClientService {
         this.clientRepository = dependencies.clientRepository;
         this.apiKeyRepository = dependencies.apiKeyRepository;
         this.userRepository = dependencies.userRepository;
+
+        // 10-minute TTL in-memory LRU cache for API key authentication
+        this.apiKeyCache = new LRUCache({
+            maxSize: 10000,
+            ttlMs: 10 * 60 * 1000, // 10 minutes TTL
+        });
     };
 
     /**
@@ -297,6 +304,16 @@ export class ClientService {
 
     async getClientByApiKey(apiKey) {
         try {
+            // 1. Check LRU cache first (if caching is enabled)
+            const cacheEnabled = process.env.ENABLE_API_KEY_CACHE !== 'false';
+            if (cacheEnabled && this.apiKeyCache) {
+                const cached = this.apiKeyCache.get(apiKey);
+                if (cached) {
+                    return cached;
+                }
+            }
+
+            // 2. Cache miss: Fetch from MongoDB
             const key = await this.apiKeyRepository.findByKeyValue(apiKey);
 
             if (!key) {
@@ -310,13 +327,36 @@ export class ClientService {
             // Get the populated client from the key
             const client = key.clientId;
 
-            return {
+            const result = {
                 client,
                 apiKey: key,
             };
+
+            // 3. Populate LRU cache (10-minute TTL)
+            if (cacheEnabled && this.apiKeyCache && client && client.isActive) {
+                this.apiKeyCache.set(apiKey, result);
+            }
+
+            return result;
         } catch (error) {
             logger.error('Error finding client by API key:', error);
             throw error;
+        }
+    }
+
+    /**
+     * Get API key LRU cache metrics (hits, misses, hit rate, reduction percentage)
+     */
+    getApiKeyCacheStats() {
+        return this.apiKeyCache ? this.apiKeyCache.getStats() : null;
+    }
+
+    /**
+     * Clear the API key LRU cache
+     */
+    clearApiKeyCache() {
+        if (this.apiKeyCache) {
+            this.apiKeyCache.clear(true);
         }
     }
 
@@ -361,6 +401,10 @@ export class ClientService {
                 throw new AppError('Client not found', 404);
             }
 
+            if (this.apiKeyCache) {
+                this.apiKeyCache.clear();
+            }
+
             logger.info('Client status updated', { clientId, isActive });
             return updatedClient;
         } catch (error) {
@@ -381,6 +425,10 @@ export class ClientService {
             const deletedClient = await this.clientRepository.delete(clientId);
             if (!deletedClient) {
                 throw new AppError('Client not found', 404);
+            }
+
+            if (this.apiKeyCache) {
+                this.apiKeyCache.clear();
             }
 
             logger.info('Client deleted', { clientId });

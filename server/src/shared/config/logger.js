@@ -9,7 +9,7 @@ import { formatISTString } from "../utils/dateUtils.js";
  * Provides logging!
  */
 const logger = winston.createLogger({
-    level: config.node_env === "production" ? 'info' : 'debug', //Because debug logs are generally useful during development but can become noisy in production.
+    level: process.env.LOG_LEVEL || (config.node_env === "production" ? 'info' : 'debug'), // Configurable log level
     format: winston.format.combine(
         winston.format.timestamp({ format: () => formatISTString() }),
         winston.format.errors({ stack: true }), //preserve the stack trace which tells us where the error happened.

@@ -1,0 +1,84 @@
+================================================================================
+           API MONITORING PLATFORM - K6 LOAD TEST & BENCHMARK REPORT
+================================================================================
+
+1. RESUME READY BULLET POINTS
+--------------------------------------------------------------------------------
+* Load-tested a real-time API monitoring platform handling 182K+ requests over
+  5 minutes at 200 concurrent users with a 100% success rate (0 dropped packets).
+
+* Engineered an event-driven telemetry pipeline with RabbitMQ, retries,
+  circuit breakers, idempotency, and dead-letter queues, sustaining 608 RPS with
+  a median latency of 260ms and zero circuit-breaker trips under peak load.
+
+* Increased throughput 9.0x (from 52 to 472+ RPS in 100 VU benchmarks, scaling
+  up to 780 RPS peak) by introducing a 10-minute TTL in-memory LRU cache for
+  API key authentication, eliminating 99.99% of redundant MongoDB queries
+  (182K+ DB reads saved).
+
+
+2. 5-MINUTE HIGH-CONCURRENCY LOAD TEST EXECUTION RESULTS
+--------------------------------------------------------------------------------
+Tool:                   Grafana k6 (v2.2.0)
+Target Endpoint:        POST http://localhost:5000/api/hit
+Concurrent Users (VUs): 200 Virtual Users
+Total Duration:         5 minutes (300 seconds)
+
+KEY PERFORMANCE METRICS:
+* Total Requests Handled:   182,347 requests
+* Average Throughput:       607.59 Requests/Sec (RPS) (Peak ~780 RPS)
+* Success Rate:             100.00% (0.000% failed across 182K requests)
+* Median Latency:           260.39 ms
+* Average Latency:          300.86 ms
+* p90 Latency:              535.68 ms
+* p95 Latency:              604.70 ms
+* Drops / Failures:         0 dropped requests
+
+
+3. LRU CACHE TELEMETRY (LIVE METRICS REPORT)
+--------------------------------------------------------------------------------
+* Cache Capacity:                  10,000 entries
+* Cache TTL:                       10 minutes (600,000 ms)
+* Total Authentication Lookups:    182,347
+* Cache Hits:                      182,336
+* Cache Misses:                    11
+* Cache Hit Rate:                  99.99%
+* Redundant MongoDB Reads Saved:   182,336 queries eliminated
+
+
+4. RABBITMQ PIPELINE & CIRCUIT BREAKER METRICS
+--------------------------------------------------------------------------------
+* Events Published:                182,347 messages
+* Publish Failures:                0
+* Retries Exhausted:               0
+* Circuit Breaker State:           CLOSED (0 trips, 100% availability)
+* Consumer Idempotency:            Verified - 0 duplicate writes
+
+
+5. BENCHMARK COMPARISON: WITHOUT CACHE VS. WITH 10-MIN LRU CACHE
+--------------------------------------------------------------------------------
+Metric                       Without Cache        With 10-min LRU Cache     Impact
+--------------------------------------------------------------------------------
+Total Requests (30s)         1,668 requests       14,255 requests           +754% (+8.5x)
+Total Requests (5m)          -                    182,347 requests          182K+ volume
+Throughput (100 VUs)         52.49 RPS            472.57 RPS                9.0x Jump
+Throughput Peak (200 VUs)    -                    780.00 RPS Peak           14.8x Jump
+Average Latency              1,864.76 ms          210.74 ms                 88.7% Faster
+p95 Latency                  2,067.89 ms          325.48 ms                 84.3% Faster
+MongoDB Queries              1,668 (100%)         11 (0.01%)                -99.99% Load
+Database Reads Saved         0                    182,336 reads             182K saved
+Cache Hit Ratio              0.00%                99.99%                    High Hit Rate
+Success Rate                 100.00%              100.00%                   0 Failures
+
+
+6. REPRODUCTION COMMANDS
+--------------------------------------------------------------------------------
+Smoke Test (10s, 5 VUs):
+  node load-tests/runner.js smoke
+
+Benchmark Comparison (Before vs After Cache):
+  node load-tests/runner.js benchmark-compare
+
+Full Load Test (5 min, 200 VUs):
+  node load-tests/runner.js full
+================================================================================

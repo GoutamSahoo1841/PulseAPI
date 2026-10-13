@@ -71,6 +71,7 @@ export class ConfirmChannelManager extends EventEmitter {
 
             // Create a confirm channel
             const confirmChannel = await connection.createConfirmChannel();
+            confirmChannel.setMaxListeners(0); // Unlimited listeners for high concurrency
 
             // Listen for 'drain' event to handle back-pressure
             confirmChannel.on('drain', () => this.emit('drain'));

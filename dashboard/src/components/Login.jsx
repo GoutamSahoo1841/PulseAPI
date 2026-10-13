@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import {
     Activity, ShieldCheck, Zap, UserRound, KeyRound, Eye, EyeOff,
-    RefreshCw, ChevronRight, AlertCircle
+    RefreshCw, ChevronRight, AlertCircle, Sparkles, Globe2, ArrowRight
 } from 'lucide-react';
 
 const roles = [
@@ -28,7 +28,7 @@ function Logo({ compact = false }) {
 }
 
 export default function Login() {
-    const { login } = useAuth();
+    const { login, enterDemoMode } = useAuth();
     const [selectedRole, setSelectedRole] = useState('super_admin');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
@@ -56,14 +56,28 @@ export default function Login() {
                 <div>
                     <Logo />
                     <div className="brand-copy">
-                        <p className="eyebrow">API MONITORING & OBSERVABILITY</p>
+                        <p className="eyebrow">REAL-TIME TELEMETRY & OBSERVABILITY</p>
                         <h1>
                             Monitor every API.<br />
                             <span>Understand every request.</span>
                         </h1>
                         <p>
-                            PulseAPI gives engineering teams a clear view of API traffic, latency, errors, endpoints and service performance.
+                            PulseAPI gives engineering teams full-fidelity visibility into API traffic, latency percentiles, error rates, microservices, and keys.
                         </p>
+
+                        {/* Live telemetry highlights on brand side */}
+                        <div className="demo-highlight-metrics">
+                            <div className="highlight-pill">
+                                <span className="highlight-dot" />
+                                <strong>248K+</strong> Hits Tested
+                            </div>
+                            <div className="highlight-pill">
+                                <strong>99.96%</strong> Success
+                            </div>
+                            <div className="highlight-pill">
+                                <strong>138ms</strong> Avg Latency
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -80,12 +94,12 @@ export default function Login() {
                         <path d="M45 185 L267 102 L495 110" />
                     </svg>
                     <div className="art-label label-a">telemetry</div>
-                    <div className="art-label label-b">99.98%</div>
+                    <div className="art-label label-b">99.96%</div>
                 </div>
 
                 <div className="brand-footer">
-                    <span><ShieldCheck size={15} /> SOC 2 ready infrastructure</span>
-                    <span><Zap size={15} /> Real-time insights</span>
+                    <span><ShieldCheck size={15} /> SOC 2 ready telemetry</span>
+                    <span><Zap size={15} /> Real-time event queue</span>
                 </div>
             </section>
 
@@ -98,8 +112,48 @@ export default function Login() {
                     <h2>Welcome back</h2>
                     <p className="login-subtitle">Sign in to your PulseAPI workspace</p>
 
+                    {/* Interactive Demo Platform CTA Box */}
+                    <div className="demo-platform-box">
+                        <div className="demo-platform-header">
+                            <div className="demo-badge-row">
+                                <span className="demo-sparkle-icon">
+                                    <Sparkles size={14} />
+                                </span>
+                                <strong>INTERACTIVE DEMO TOUR</strong>
+                            </div>
+                            <span className="demo-instant-badge">Instant Access</span>
+                        </div>
+                        <p className="demo-platform-desc">
+                            Not registered yet? Explore preloaded production telemetry (248K+ hits, 8 microservices, team RBAC, and ingestion keys) without signing in.
+                        </p>
+                        <div className="demo-cta-group">
+                            <button
+                                type="button"
+                                className="demo-action-btn primary"
+                                onClick={() => enterDemoMode('client_admin')}
+                            >
+                                <Sparkles size={15} />
+                                <span>Explore as Organization Admin</span>
+                                <ArrowRight size={14} />
+                            </button>
+                            <button
+                                type="button"
+                                className="demo-action-btn secondary"
+                                onClick={() => enterDemoMode('super_admin')}
+                                title="Explore multi-tenant organisation views"
+                            >
+                                <Globe2 size={14} />
+                                <span>Platform Super Admin View</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="login-divider">
+                        <span>OR SIGN IN WITH ACCOUNT</span>
+                    </div>
+
                     <div className="role-picker">
-                        <p>Sign in role demo persona</p>
+                        <p>Sign in role persona</p>
                         <div className="role-options">
                             {roles.map((item) => (
                                 <button
@@ -178,7 +232,7 @@ export default function Login() {
                             disabled={loading}
                         >
                             {loading ? <RefreshCw className="spin" size={16} /> : null}
-                            {loading ? 'Signing in...' : 'Sign in'}
+                            {loading ? 'Signing in...' : 'Sign in to Workspace'}
                             {!loading && <ChevronRight size={16} />}
                         </button>
                     </form>

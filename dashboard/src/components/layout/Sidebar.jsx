@@ -27,7 +27,7 @@ function Avatar({ initials, tone = 'purple' }) {
 }
 
 export function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
-    const { user, isSuperAdmin, isClientAdmin, role, selectedClient, logout } = useAuth();
+    const { user, isSuperAdmin, isClientAdmin, role, selectedClient, logout, isDemoMode, exitDemoMode } = useAuth();
 
     const getInitials = (name) => {
         if (!name) return 'PA';
@@ -74,12 +74,16 @@ export function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) 
     ].filter(i => i.show);
 
     const userInitials = getInitials(user?.username || 'User');
-    const workspaceName = isSuperAdmin
-        ? (selectedClient ? selectedClient.name : 'PulseAPI Platform')
-        : 'Client Workspace';
-    const workspaceType = isSuperAdmin
-        ? (selectedClient ? 'Filtered View' : 'System Workspace')
-        : 'Client Workspace';
+    const workspaceName = isDemoMode
+        ? 'ShopSphere Global'
+        : (isSuperAdmin
+            ? (selectedClient ? selectedClient.name : 'PulseAPI Platform')
+            : 'Client Workspace');
+    const workspaceType = isDemoMode
+        ? 'Interactive Demo Mode'
+        : (isSuperAdmin
+            ? (selectedClient ? 'Filtered View' : 'System Workspace')
+            : 'Client Workspace');
 
     return (
         <>
@@ -152,9 +156,13 @@ export function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) 
                         {!collapsed && <MoreHorizontal size={16} />}
                     </div>
 
-                    <button className="logout-button nav-item" onClick={logout}>
+                    <button
+                        className="logout-button nav-item"
+                        onClick={isDemoMode ? exitDemoMode : logout}
+                        title={isDemoMode ? 'Exit Demo Mode' : 'Sign out'}
+                    >
                         <LogOut size={16} />
-                        {!collapsed && 'Sign out'}
+                        {!collapsed && (isDemoMode ? 'Exit Demo' : 'Sign out')}
                     </button>
                 </div>
             </aside>

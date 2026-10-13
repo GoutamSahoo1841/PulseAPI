@@ -17,6 +17,8 @@ import clientRouter from './services/client/routes/clientRoutes.js';
 import ingestRouter from "./services/ingest/routes/ingestRoutes.js"
 import analyticsRouter from "./services/analytics/routes/analyticsRoutes.js"
 import { consumer, startConsumerWithRetry } from "./services/processor/consumer.js";
+import clientContainer from './services/client/Dependencies/dependencies.js';
+import ingestContainer from './services/ingest/Dependencies/dependencies.js';
 
 /**
  * Initialize Express app
@@ -72,6 +74,34 @@ app.get('/health', (req, res) => {
                 uptime: process.uptime(),
             },
             'Service is healthy'
+        )
+    );
+});
+
+/**
+ * Health & Performance Metrics Endpoint (Cache hits, RabbitMQ pipeline stats, Memory)
+ */
+app.get('/health/metrics', (req, res) => {
+    const mem = process.memoryUsage();
+    const cacheStats = clientContainer.services.clientServices?.getApiKeyCacheStats() || null;
+    const producerStats = ingestContainer.ingestService?.eventProducer ? ingestContainer.ingestService.eventProducer.getStats() : null;
+
+    res.status(200).json(
+        ResponseFormatter.success(
+            {
+                status: 'healthy',
+                timestamp: getISTTimestamp(),
+                uptime: process.uptime(),
+                memory: {
+                    rssMb: Math.round(mem.rss / 1024 / 1024),
+                    heapUsedMb: Math.round(mem.heapUsed / 1024 / 1024),
+                    heapTotalMb: Math.round(mem.heapTotal / 1024 / 1024),
+                },
+                apiKeyCache: cacheStats,
+                eventProducer: producerStats,
+                consumer: consumer && consumer.isRunning ? consumer._stats : null,
+            },
+            'System performance metrics'
         )
     );
 });

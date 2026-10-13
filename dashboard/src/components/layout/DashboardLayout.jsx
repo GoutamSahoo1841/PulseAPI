@@ -5,7 +5,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { Sidebar } from './Sidebar';
 import {
-    Menu, ChevronRight, RefreshCw, Bell, ChevronDown
+    Menu, ChevronRight, RefreshCw, Bell, ChevronDown,
+    Sparkles, LogOut, ArrowRightLeft
 } from 'lucide-react';
 
 function Avatar({ initials, tone = 'purple' }) {
@@ -17,7 +18,7 @@ export function DashboardLayout({ children }) {
     const [mobileOpen, setMobileOpen] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
 
-    const { user, role, isSuperAdmin } = useAuth();
+    const { user, role, isSuperAdmin, isDemoMode, enterDemoMode, exitDemoMode } = useAuth();
     const location = useLocation();
     const queryClient = useQueryClient();
 
@@ -75,6 +76,39 @@ export function DashboardLayout({ children }) {
             />
 
             <div className={`main-area ${collapsed ? 'sidebar-collapsed-space' : ''}`}>
+                {isDemoMode && (
+                    <aside className="demo-top-banner" aria-label="Demo mode announcement">
+                        <div className="demo-top-info">
+                            <span className="demo-tag">
+                                <Sparkles size={13} /> INTERACTIVE DEMO MODE
+                            </span>
+                            <span className="demo-message">
+                                Viewing <strong>ShopSphere Global</strong> preloaded telemetry with <strong>248K+ requests</strong>, <strong>99.96% success rate</strong>, and <strong>8 microservices</strong>.
+                            </span>
+                        </div>
+                        <div className="demo-top-actions">
+                            <button
+                                type="button"
+                                className="demo-toggle-role-btn"
+                                onClick={() => enterDemoMode(isSuperAdmin ? 'client_admin' : 'super_admin')}
+                                title="Toggle between Client Admin and Super Admin demo view"
+                            >
+                                <ArrowRightLeft size={13} />
+                                <span>Switch to {isSuperAdmin ? 'Client Admin' : 'Super Admin'} View</span>
+                            </button>
+                            <button
+                                type="button"
+                                className="demo-exit-btn"
+                                onClick={exitDemoMode}
+                                title="Exit demo mode and return to sign in"
+                            >
+                                <LogOut size={13} />
+                                <span>Exit Demo</span>
+                            </button>
+                        </div>
+                    </aside>
+                )}
+
                 <header className="topbar">
                     <button
                         className="mobile-menu"
